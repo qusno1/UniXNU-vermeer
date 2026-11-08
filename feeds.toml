@@ -1,0 +1,6 @@
+[[source]]
+name = "sm8550"
+kind = "soc"
+git = "https://github.com/UniXNU/UniXNU-sm8550-common"
+# 官方 SoC 仓库已审核 commit（2026-11-08 main HEAD，本地克隆核对）
+commit = "97665e28578483082b674e8375a8fa65f4cf49cf"

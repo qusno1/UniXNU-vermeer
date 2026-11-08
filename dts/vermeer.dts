@@ -1,0 +1,58 @@
+// SPDX-License-Identifier: BSD-3-Clause
+// Xiaomi Redmi K70 (vermeer) — hardware facts from rooted-device FDT (notes/09).
+/dts-v1/;
+/include/ "sm8550.dtsi"
+
+/ {
+    model = "Xiaomi Redmi K70";
+    compatible = "xiaomi,vermeer", "qcom,sm8550";
+
+    // FastConnect 7800 (WCN7850)，与 SM8550 配套；WiFiProbe 运行时填 local-mac-address
+    wlan {
+        compatible = "qcom,wcn7850";
+        unixnu,adt-name = "wlan";
+        status = "okay";
+    };
+
+    bluetooth {
+        device_type = "bluetooth";
+        compatible = "qcom,wcn7850-bt";
+        unixnu,adt-name = "bluetooth";
+        transport-encoding = <1>;
+        transport-speed = <3200000>;
+        status = "okay";
+    };
+
+    // bring-up 基线窗口与官方 sheng（同 SoC）一致；实机 16GB 双 bank 见 notes/09，用户态阶段再扩
+    memory@80000000 {
+        device_type = "memory";
+        reg = <0 0x80000000 0 0x80000000>;
+    };
+
+    reserved-memory {
+        #address-cells = <2>;
+        #size-cells = <2>;
+        ranges;
+        splash_region: framebuffer@b8000000 {
+            label = "cont_splash_region";
+            // 2026-11-08 vermeer 实机 FDT 实测值
+            reg = <0 0xb8000000 0 0x2b00000>;
+            no-map;
+        };
+    };
+};
+
+// SM8550: cpu0-2 = A510 (E cluster), cpu3-4 = A715, cpu5-6 = A710, cpu7 = X3 (P cluster)
+&cpu0 { unixnu,cluster-type = "E"; };
+&cpu1 { unixnu,cluster-type = "E"; };
+&cpu2 { unixnu,cluster-type = "E"; };
+&cpu3 { unixnu,cluster-type = "P"; };
+&cpu4 { unixnu,cluster-type = "P"; };
+&cpu5 { unixnu,cluster-type = "P"; };
+&cpu6 { unixnu,cluster-type = "P"; };
+&cpu7 { unixnu,cluster-type = "P"; };
+&ufs { status = "okay"; };
+&ufsphy { status = "okay"; };
+&gpu { status = "okay"; };
+&gmu { status = "okay"; };
+&gpu_smmu { status = "okay"; };

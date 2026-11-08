@@ -1,0 +1,73 @@
+schema_version = 2
+
+[board]
+# 2026-11-08 翻转 false：默认构建路径输入已齐（Binaries/vermeer + SecParti.cfg + DevicePathDxe shim）。
+# 注意：此后 build/bootimg 不再有 example 闸；刷写保护依赖流程纪律 —— 全程仅 fastboot boot，
+# 任何 flash 操作（含 flash userdata）必须单独向用户确认（PLAN.md 风险登记）。
+example = false
+name = "vermeer"
+soc = "SM8550"
+soc_source = "sm8550"
+os_profile = "ipados-17.7.11-21H461"
+description = "Xiaomi Redmi K70"
+kit = "vermeer"
+
+[components]
+# bring-up 基线组件集（官方模板；存储/GPU/输入驱动按移植第 6 步逐项加入）
+include = ["ArmDTPlatform", "ArmCpu", "SoftwareAES", "XnuPrelink", "DarwinBoot"]
+
+[kernel]
+defconfig = "vermeer_defconfig"
+config_fragments = ["arch:configs/common.config", "soc:configs/sm8550.config", "os:configs/ipados.config"]
+patch_series = ["arch:patches/xnu/series", "soc:patches/xnu/series", "os:patches/xnu/series", "device:patches/xnu/series"]
+
+[device_tree]
+source = "device:dts/vermeer.dts"
+include_dirs = ["soc:dts"]
+
+[firmware]
+# vermeerPkg 已建（uefi-vermeer/Platforms/Xiaomi/vermeerPkg）；Binaries/vermeer 已满足默认构建路径
+config = "vermeer"
+dsc = "Platforms/Xiaomi/vermeerPkg/vermeer.dsc"
+fd = "Build/vermeerPkg/{target}_CLANGPDB/FV/SILICIUM_UEFI.fd"
+submodules = ["Common/Mu", "Common/Mu_OEM_Sample", "Silicium-ACPI", "Silicon/Silicium/OpensslPkg/Library/OpensslLib/openssl"]
+patches = ["Resources/MuPatches/Gic-Spurious.patch"]
+packages = ["{uefi}", "{uefi}/Platforms/Xiaomi", "{tree}/package", "{tree}/drivers/DarwinBoot", "{edk2}", "{uefi}/Common/Mu", "{uefi}/Common/Mu_OEM_Sample", "{uefi}/Silicon/Qualcomm", "{uefi}/Silicon/Silicium", "{uefi}/Silicium-ACPI", "{uefi}/Silicium-ACPI/Platforms/Xiaomi", "{uefi}/Silicium-ACPI/Silicon/Qualcomm"]
+
+[bootimg]
+# dtb = "build/vermeer/vermeer.dtb"  # 固件 preflight 产出后启用
+
+[firmware.defines]
+# 镜像官方 sheng 的 define 集（ENABLE_SECUREBOOT 等被 SiliciumPkg 代码消费）
+DEVICE_MODEL = "vermeer"
+ENABLE_SECUREBOOT = "1"
+MEMORY_PROTECTION = "TRUE"
+SHIP_MODE = "FALSE"
+BUILDID_STRING = "vermeer-research"
+
+[payload]
+volume = "VERMEER"
+size_mib = 192
+loader = "firmware"
+title = "UniXNU"
+dram_size = "0x80000000"
+panic_screen = true
+kernel_args = ["-v", "serial=3"]
+
+[userdata]
+# 2026-11-08 root 真机实测：/dev/block/sda29, sysfs start=20562432 size=974020056(512B), LBA=4096
+first_lba = 2570304
+last_lba = 124322810
+lba_bytes = 4096
+
+[package]
+unixnu = "../UniXNU"
+
+[package.defconfig]
+"ipados-17.7.11-21H461" = "vermeer_defconfig"
+
+[payload.adt]
+# OS profile（iPad7,1 / j120ap）指定 chip_id=32785 (0x8011)
+chip_id = "32785"
+# 平台种子经 --unique-chip-id / fork secret 提供，不入库；选定值见 notes/10
+unique_chip_id = "required"
