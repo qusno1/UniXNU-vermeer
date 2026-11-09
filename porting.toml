@@ -37,6 +37,7 @@ procedure = [
 findings = [
   "The splash_region geometry measured on vermeer matches the SM8550 reference board value.",
   "The stock tree exposes generic 'qcom,kryo' CPU compatibles; the cluster split comes from the soc dtsi core types.",
+  "Stock UEFI (uefi.elf) loads at physical 0xA7000000 with 0x2CD000 bytes (ELF PT_LOAD): the firmware FD window matches the reference board layout (FD at 0xA7100000, 3 MiB, inside the stock 4 MiB window).",
 ]
 completion = ["All source pins resolve; every selected component has a record; status shows the intended overrides and patch order."]
 limits = ["Panel and touch identities pending; UFS link speed pending; PAC checks pending on device."]

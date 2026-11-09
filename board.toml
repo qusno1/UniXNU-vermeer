@@ -39,7 +39,7 @@ source = "device:dts/vermeer.dts"
 include_dirs = ["soc:dts"]
 
 [firmware]
-# Preflight and the vendor image land with the firmware bring-up stage.
+preflight = ["scripts/prepare-vermeer-firmware-dtb.py"]
 config = "vermeer"
 dsc = "Platforms/Xiaomi/vermeerPkg/vermeer.dsc"
 fd = "Build/vermeerPkg/{target}_CLANGPDB/FV/SILICIUM_UEFI.fd"

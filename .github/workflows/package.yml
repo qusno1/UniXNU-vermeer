@@ -38,8 +38,8 @@ jobs:
           submodules: recursive
       - uses: actions/checkout@v4
         with:
-          repository: REPLACE/uefi-example   # this board's firmware checkout
-          path: uefi-example
+          repository: qusno1/uefi-vermeer   # this board's firmware checkout
+          path: uefi-vermeer
           submodules: recursive   # the firmware volume builds from the checkout's submodules
       - name: tools
         run: |
@@ -67,7 +67,7 @@ jobs:
         env:
           UNIXNU_UNIQUE_CHIP_ID: ${{ secrets.UNIXNU_UNIQUE_CHIP_ID }}
           GITHUB_TOKEN: ${{ github.token }}
-        run: scripts/package.sh --os "${{ inputs.os }}" --uefi ../uefi-example
+        run: scripts/package.sh --os "${{ inputs.os }}" --uefi ../uefi-vermeer
       - name: images
         uses: actions/upload-artifact@v4
         with:
@@ -75,7 +75,7 @@ jobs:
           retention-days: 1
           if-no-files-found: error
           path: |
-            UniXNU/out/example/*/*/boot/boot.img
-            UniXNU/out/example/*/*/payload/payload.img
-            UniXNU/out/example/*/*/kernel/kernel.macho
-            UniXNU/out/example/*/*/package.manifest.json
+            UniXNU/out/vermeer/*/*/boot/boot.img
+            UniXNU/out/vermeer/*/*/payload/payload.img
+            UniXNU/out/vermeer/*/*/kernel/kernel.macho
+            UniXNU/out/vermeer/*/*/package.manifest.json

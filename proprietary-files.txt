@@ -1,2 +1,4 @@
 # Required firmware inputs: relative path | source | SHA-256 | consumer
 # Fill each entry from this board's firmware package.
+firmware/dtb/vermeer.dtb | stock ABL device tree, adb pull /sys/firmware/fdt on HyperOS OS3.0.307.0.WNKCNXM (2026-11-09) | (recorded on extraction) | boot image device tree, firmware preflight
+Binaries/vermeer/RawFiles/SecParti.cfg | placeholder from Binaries/9707f pending the vermeer firmware import | pending | firmware volume RAW section (no consumer at VERMEER_VENDOR_HW=0)
