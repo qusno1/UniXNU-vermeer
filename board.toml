@@ -133,6 +133,12 @@ size_mib = 192
 loader = "firmware"
 title = "UniXNU"
 panic_screen = true
+# Diagnostic run: stage 3 of the entry probe waits this many seconds after the MMU is enabled,
+# then issues PSCI SYSTEM_RESET. A reboot by itself after the delay proves the CPU got through
+# the MMU enable; no reboot means it did not. The frame buffer is not mapped at that point, so
+# the delay is the signal, not the screen. Remove this key once the question is answered: it
+# costs one reset per boot.
+entry_probe_reset_delay = 10
 kernel_args = ["-v", "serial=3", "debug=0x14e"]
 
 [payload.adt]
