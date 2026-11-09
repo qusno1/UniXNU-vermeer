@@ -255,9 +255,10 @@ inputs = [
   "Framebuffer handoff: ABL leaves a linear framebuffer and requires /reserved-memory/splash_region for the panel to keep scanning out.",
 ]
 configuration = [
-  "GopFramebuffer publishes the UEFI GOP framebuffer to the kernel; the firmware sets PcdFrameBufferWidth 1440, PcdFrameBufferHeight 3200 and 32-bit depth from the stock panel XML.",
-  "[bootimg] dtb_node restores the splash_region node so the stock ABL does not power the panel off.",
+  "GopFramebuffer publishes the UEFI GOP framebuffer to the kernel; the firmware sets PcdFrameBufferWidth 1440, PcdFrameBufferHeight 3200 and 32-bit depth from the stock panel timing.",
+  "[bootimg] declares only dtb; the boot image device tree is the stock ABL blob, which already carries /reserved-memory/splash_region, so no dtb_node re-adds it.",
   "VERMEER_VENDOR_HW = 0 keeps the previous stage's scanout and loads no vendor display driver.",
+  "The kernel links no display stack: CONFIG_XNU_NATIVE_LEGACY_DISPLAY and CONFIG_XNU_NATIVE_MOBILE_DISPLAY are unset, so build-xnu-4k-baseline.sh links neither libNativeLegacyDisplay nor libGopFramebuffer.",
 ]
 procedure = [
   "Confirm the framebuffer base, stride and pixel format as ABL hands them over.",
@@ -267,6 +268,7 @@ procedure = [
 findings = [
   "The firmware's own panel constants come from the stock N81A panel XML, but the boot argument of this board names an n11 panel; the XML set and the panel name do not correspond and must be re-imported for vermeer.",
   "Enabling the stock vendor display chain (VERMEER_VENDOR_HW = 1) reaches ClockDxe and blanks the panel while the backlight stays on, as on the reference board.",
+  "The prelink reported one stub for com.apple.driver.AppleM2ScalerCSCDriver at original 0xfffffe000ad94128. The address is in the native kernel's space, not in any component: AppleM2ScalerCSCDriver is the referencing owner, and the missing side is the legacy-display binding that provides IOMobileFramebufferLegacy. Supplying it means importing the reference board's kernel-side display integration (build-gop-legacy-display-27.py, kits/sheng sources and the three arm64e ABI fixtures), so the profile's prelink regression policy is suspended for this board in board.toml [os_overrides] and the stub count stays visible in kernel/kernel.macho.json.",
 ]
 completion = [
   "A known frame appears with correct geometry and colors.",
@@ -276,9 +278,10 @@ limits = [
   "No frame has been shown from an image built in this repository.",
   "The framebuffer stride is assumed equal to the width; it is unverified for this panel.",
   "The panel XML and the vendor display chain are not imported for vermeer.",
+  "The kernel-side display integration is absent, so the prelink stubs AppleM2ScalerCSCDriver's reference to IOMobileFramebufferLegacy and the profile's regression policy cannot pass; it is suspended in [os_overrides] until this stage provides the archive.",
 ]
 next_action = [
-  "Record the handed-over framebuffer base, stride and format, then re-import the n11 panel data before enabling the vendor chain.",
+  "Import the legacy-display binding and its ABI fixtures, enable CONFIG_XNU_NATIVE_LEGACY_DISPLAY, then restore the profile's regression policy and confirm its required IOMobileFramebufferLegacy branch.",
 ]
 evidence = [
   { kind = "source", reference = "dts/vermeer.dts", result = "splash_region reservation matching the stock device tree." },
