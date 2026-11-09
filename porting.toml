@@ -478,6 +478,7 @@ procedure = [
 findings = [
   "The kernel step needs Xcode; this repository cannot produce kernel.macho on a Linux or Windows host.",
   "The payload must stay under the DarwinBoot command-line limit of 1000 bytes and every argument must match the accepted character set.",
+  "scripts/package.sh and the board preflight script must keep mode 100755. Committed as 100644 they made the packaging workflow stop at its first command with 'scripts/package.sh: Permission denied', because the workflow runs the file directly rather than through an interpreter.",
   "scripts/package.sh --check --os 27 --uefi ../uefi-vermeer resolves dependencies, configuration and 73 ordered patches and stops before building.",
   "Overriding [ipsw] with another product broke the prelink pin: the profile's kernelcache digest belongs to its own image. Keeping the profile image keeps every pin valid.",
 ]
