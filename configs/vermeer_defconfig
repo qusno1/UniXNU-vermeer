@@ -12,6 +12,11 @@ CONFIG_XNU_ARMVIRT_PLATFORM=n
 # "source" keeps the definitions in prng_random.o and is what UniXNU-sheng selects for the same
 # ipados-27.0.1-24A446 profile.
 CONFIG_XNU_CRYPTO_BOOTSTRAP="source"
+# The prelink emits an MH_FILESET kernel and the kit's fileset_layout.split_references reads the
+# linker's LC_DYLD_CHAINED_FIXUPS (v2 split-segment records). Without this switch the linked
+# kernel has no such command and the prelink stops with "Native image has no split-segment
+# relocation information". UniXNU-sheng enables it for the same profile.
+CONFIG_XNU_KERNEL_CHAINED_FIXUPS=y
 # soc:configs/sm8550.config sets CONFIG_XNU_NATIVE_ADRENO=y. It is turned off here until the
 # board's GPU inputs exist (ZAP firmware, GMU votes, GPU SMMU windows): Adreno740/AdrenoMetal
 # are not in [components] and their archives are not in [kernel] archives, so the kernel must
