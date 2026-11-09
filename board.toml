@@ -20,7 +20,8 @@ build = "24A446"
 device_class = "d93ap"
 chip_id = 33088
 board_id = 12
-fetch = ["KernelCache", "DeviceTree", "StaticTrustCache", "Cryptex1,SystemTrustCache", "OS", "Cryptex1,SystemOS"]
+# The OS and Cryptex1,SystemOS disk images join the list for the userdata stage.
+fetch = ["KernelCache", "DeviceTree", "StaticTrustCache", "Cryptex1,SystemTrustCache"]
 
 [kernel]
 defconfig = "vermeer_defconfig"
