@@ -7,6 +7,7 @@ soc_source = "sm8550"
 os_profile = "ipados-27.0.1-24A446"
 description = "Redmi K70"
 kit = "vermeer"
+example = false
 
 [components]
 include = ["ArmDTPlatform", "ArmCpu", "XnuPrelink", "DarwinBoot", "GopFramebuffer", "AppleKeyStoreState", "Adreno740", "AdrenoMetal"]
