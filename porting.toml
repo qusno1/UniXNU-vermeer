@@ -465,6 +465,7 @@ inputs = [
   "Target restore image from the OS profile: iPadOS 27.0.1 build 24A446 for iPad17,3, including the profile's url and fetch list.",
   "Platform seed supplied at build time, never stored in the repository.",
   "Prelink inputs from the OS profile: kernelcache pin, slide, early security init address, roots and the fileset reference.",
+  "The fileset reference kernel named by the profile's prelink extra_args. It is not a profile input that ships ready: [kernel] archives builds it with build-fileset-release-reference.py --tree . --lto, which must run before the prelink step.",
 ]
 configuration = [
   "[ipsw] comes from the OS profile; board.toml has no [ipsw] table, so the profile's url, product, device_class, chip_id and fetch list apply unchanged.",
