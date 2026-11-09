@@ -25,18 +25,15 @@
         status = "okay";
     };
 
-    // 16 GiB device, but the ADT can describe one contiguous DRAM range only, and the low
-    // 4 GiB is not contiguous: the stock ABL device tree has holes at
-    // 0x80e00000..0x811d0000, 0xd8000000..0xd8140000 and 0xd8160000..0xe7cb0000 inside
-    // 0x80000000..0x100000000. With dram-size 0x80000000 the early memory walk ran into
-    // 0xe8004000 and took a synchronous external abort, because the boot page tables do not
-    // cover that hole.
+    // 16 GiB device. The stock ABL map starts the usable range at 0x80000000 with carveouts.
     //
-    // 0x56000000 ends at 0xd6000000, inside the largest low extent
-    // (0x811d0000 + 0x56e30000) and before the 0xd8000000 hole.
+    // 0x80000000 was tried and made no difference: with 0x56000000 (ending 0xd6000000) the
+    // fault registers were identical (ELR 0xc258ce10, FAR 0xe8004000, x1 = x2 = 0x100000000),
+    // so the early fault does not depend on this declaration. It is back to the reference
+    // board's value, which is what the firmware's memory tables were built against.
     memory@80000000 {
         device_type = "memory";
-        reg = <0 0x80000000 0 0x56000000>;
+        reg = <0 0x80000000 0 0x80000000>;
     };
 
     reserved-memory {
