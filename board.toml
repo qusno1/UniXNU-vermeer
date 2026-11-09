@@ -62,7 +62,11 @@ BUILDID_STRING = "vermeer-research"
 
 [bootimg]
 dtb = "build/vermeer/vermeer.dtb"
-dtb_node = [{ "path" = "/reserved-memory/splash_region", "props" = [{ "name" = "label", "type" = "s", "value" = "cont_splash_region" }, { "name" = "reg", "type" = "x", "value" = ["0x0", "0xb8000000", "0x0", "0x2b00000"] }] }]
+# No dtb_node: the boot image device tree is the stock ABL blob copied by the preflight,
+# and that blob already carries /reserved-memory/splash_region as
+# <0 0xb8000000 0 0x2b00000> with the label cont_splash_region. A dtb_node here made the
+# pack step fail with "Error at 'splash_region': FDT_ERR_EXISTS", because the pack step
+# creates the node before writing its properties.
 
 [payload]
 volume = "VERMEER"
