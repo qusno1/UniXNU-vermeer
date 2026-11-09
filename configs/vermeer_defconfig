@@ -2,6 +2,16 @@
 # arch:configs/common.config (arm64e) already sets BUILD_ARCHIVES, SOURCE_CORECRYPTO14,
 # SOURCE_PTHREAD, ARM_DT_PLATFORM, ARMCPU, NATIVE_ARCH_TIMER and NATIVE_PAN.
 CONFIG_XNU_ARMVIRT_PLATFORM=n
+# The OS profile's ipados.config selects "prelinked", which leaves the original corecrypto as
+# the only provider: build-xnu-4k-baseline.sh then undefines XNU_SOURCE_CORECRYPTO14 for
+# prng_random.o. OSKext.cpp keeps the define, so its calls to source_corecrypto14_original and
+# source_corecrypto14_start_once stay and the first pass fails to link, because that pass
+# links no crypto archive:
+#   Undefined symbols for architecture arm64e:
+#     "_source_corecrypto14_original", referenced from OSKext::start(bool)
+# "source" keeps the definitions in prng_random.o and is what UniXNU-sheng selects for the same
+# ipados-27.0.1-24A446 profile.
+CONFIG_XNU_CRYPTO_BOOTSTRAP="source"
 # soc:configs/sm8550.config sets CONFIG_XNU_NATIVE_ADRENO=y. It is turned off here until the
 # board's GPU inputs exist (ZAP firmware, GMU votes, GPU SMMU windows): Adreno740/AdrenoMetal
 # are not in [components] and their archives are not in [kernel] archives, so the kernel must
