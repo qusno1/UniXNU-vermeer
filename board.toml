@@ -140,13 +140,21 @@ kernel_args = ["-v", "serial=3", "debug=0x14e"]
 # 0x8142 is the ApChipID the profile's restore image reports for iPad17,3 (profile chip_id
 # 33090), which is also what the reference board states for this profile.
 chip_id = "8142"
-# DarwinBoot reserves one contiguous conventional-memory run of this size. The 16 GiB part
-# supplies it above 4 GiB: MemoryMapLib adds the three high banks as conventional memory
-# (0x880000000+0x38700000, 0x8C0000000+0x140000000 and 0xA00000000+0x200000000), so a
-# 4.75 GiB window fits inside one bank. VermeerBootMemoryDxe's 1 GiB ADD_LIMIT only bounds
-# the DRAM it fills in below 4 GiB. Unverified on this board until a boot log records the
-# allocated window.
-owned_memory_size = "0x130000000"
+# DarwinBoot reserves one contiguous conventional-memory run of this size and places the
+# kernel window inside it. The value must stay inside the DRAM the ADT declares, which is one
+# contiguous range: the DTS memory node gives 0x80000000 + 0x80000000 (2 GiB), and the ADT can
+# only describe that single range.
+#
+# With 0x130000000 (4.75 GiB) no low run is large enough, so DarwinBoot took the window from
+# the 8 GiB bank at 0xA00000000 instead. The kernel then entered at physical 0x8C0190000 and
+# panicked in arm_vm_init.c:1107 (!l2va_active || ...): x1 was the PTE 0x00000008c0190683 for
+# that address, outside the 2 GiB the ADT claims. VermeerBootMemoryDxe's own
+# "ADD_BELOW SIZE_4GB - stay inside what the MMU setup maps" is the same boundary.
+#
+# 256 MiB is DarwinBoot's default and holds this image, the ADT and boot_args while fitting in
+# the low range. Raise it only together with a larger DTS memory node and a device-tree that
+# still describes one contiguous range.
+owned_memory_size = "0x10000000"
 unique_chip_id = "required"
 
 # No [adt] identity override: the OS profile supplies model iPad17,3, target-type J820 and
