@@ -68,9 +68,9 @@ evidence = [
 
 [[area]]
 id = "firmware"
-status = "host-verified"
+status = "device-verified"
 components = ["DarwinBoot"]
-paths = ["proprietary-files.txt", "scripts/prepare-vermeer-firmware-dtb.py", "firmware/**"]
+paths = ["proprietary-files.txt", "scripts/prepare-vermeer-firmware-dtb.py", "firmware/**", "reports/**"]
 inputs = [
   "uefi-vermeer checkout with Platforms/Xiaomi/vermeerPkg, adapted from the sheng SM8550 reference platform.",
   "Firmware volume window 0xA7100000, 3 MiB, inside the stock 4 MiB FD window at 0xA7000000; the stock uefi.elf loads at 0xA7000000 with 0x2CD000 bytes.",
@@ -91,6 +91,8 @@ procedure = [
 ]
 findings = [
   "The firmware volume builds: FVMAIN reports 99 percent used with 880 bytes free, and FVMAIN_COMPACT 33 percent used, inside a 3 MiB FD; the compressed volume, not FVMAIN, bounds growth.",
+  "The firmware runs on the phone and reaches the UniXNU menu: fastboot accepts the v0 image, BootShim hands over the 3 MiB volume at 0xa7100000, SEC reaches DXE without the stall at 'MMU: enabled' the reference platform hit before PcdBuildXblHobs was turned off, and the boot manager draws on the GOP.",
+  "The boot image device tree is the stock ABL blob, which already carries /reserved-memory/splash_region as <0 0xb8000000 0 0x2b00000> with the label cont_splash_region. A [bootimg] dtb_node for the same path failed the pack step with FDT_ERR_EXISTS, so the entry is gone and the stock node is used unchanged.",
   "The reference platform disables its vendor hardware stack (VERMEER_VENDOR_HW = 0) so that the previous stage's display keeps scanning out; enabling the stock vendor drivers reaches ClockDxe and leaves the panel black with the backlight on, a failure inherited from sheng and not diagnosed on this board.",
   "Memory additions come from VermeerBootMemoryDxe, which adds DRAM in pieces of at least 16 MiB and at most 1 GiB below 4 GiB; the three banks above 4 GiB are already conventional memory in MemoryMapLib.",
   "The platform package still carries sheng panel and vendor-import text (N81A panel XMLs, the sheng firmware archive hash); those inputs are unused while USE_CUSTOM_DISPLAY_DRIVER and VERMEER_VENDOR_HW are 0 and must be replaced before enabling the vendor stack.",
@@ -101,16 +103,18 @@ completion = [
   "The memory reservations from the stock device tree survive the handoff.",
 ]
 limits = [
-  "The firmware has not run on the phone; the build result is a host result only.",
+  "The payload volume is not visible yet: the verified image has an empty ramdisk, so stages 3 to 7 are untested.",
+  "No log transcript exists. The firmware log export is not wired and the board has no UART, so the only record of a boot attempt is a photograph of the screen.",
   "The stock vermeer uefiplat.cfg has not been imported; MemoryMapLib's 78 descriptors are the reference platform's layout candidates, extended with this board's three high DRAM banks.",
   "The vendor hardware stack is disabled, so vendor clocks, RPMh, UFS and charger drivers are not exercised.",
 ]
 next_action = [
-  "Boot the built FD on the phone with fastboot boot and record the UEFI log and the first framebuffer output.",
+  "Pack the payload and boot image with the prelinked kernel on a macOS host, then boot it and record the payload, loader and kernel checkpoints.",
 ]
 evidence = [
   { kind = "source", reference = "proprietary-files.txt", result = "Firmware inputs and their consumers; the SecParti.cfg entry is a placeholder from another platform and nothing consumes it while VERMEER_VENDOR_HW = 0." },
   { kind = "host", reference = "https://github.com/UniXNU/UniXNU/blob/main/docs/porting/uefi-firmware.md", command = "./unixnu build firmware --uefi ../uefi-vermeer -D ../UniXNU-vermeer", revision = "009f9f7b5b3ff59d3109fa6f5bce9911adbb2d62", result = "SILICIUM_UEFI.fd built at 3145728 bytes; FVMAIN 5565584 of 5566464 bytes used, FVMAIN_COMPACT 1056872 of 3145728." },
+  { kind = "device", reference = "reports/2026-11-09-uefi-menu.md", command = "fastboot boot boot.img", revision = "b1c88c0808db7955a9ffd0e55ff35489e34bc25b", result = "The bootloader sent 1788 KB and booted the image; the screen then showed the UniXNU menu with its UNIXNU: output. Image 1830912 bytes, SHA-256 4a2994d4792c41e72a3efc4da6484cde6289cd36f366faae0366e21eabc9c2a4, header v0, ramdisk none." },
 ]
 
 [[area]]
@@ -496,7 +500,7 @@ evidence = [
 id = "diagnostics"
 status = "planned"
 components = []
-paths = ["unixnu.lock", "scripts/prepare-vermeer-firmware-dtb.py"]
+paths = ["unixnu.lock", "scripts/prepare-vermeer-firmware-dtb.py", "reports/**"]
 inputs = [
   "The phone has no UART; the firmware must expose its log on screen.",
   "The boot path reports through the framebuffer and the panic screen.",
@@ -508,19 +512,24 @@ configuration = [
 procedure = [
   "Capture the screen at each bring-up checkpoint: firmware output, UniXNU menu, payload parsing, loader handoff, kernel entry, root mount, launchd.",
   "Record the last confirmed stage and the image hash for every attempt.",
+  "Run fastboot boot, since it writes no partition and can be retried; reboot to the bootloader with the hardware keys when the firmware stops responding.",
 ]
 findings = [
   "The reference platform documents an Advanced Logger with QR export as the fallback log channel; this board's firmware has not wired it.",
+  "After the firmware starts, the phone disappears from both adb and fastboot: the firmware replaces those USB stacks, so the screen is the only channel until a log export exists.",
+  "One boot attempt is recorded: the UniXNU menu appeared, stages 1 and 2.",
 ]
 completion = [
   "Each claimed milestone has a reproducible command, a matching source and image revision, and an accessible result.",
 ]
 limits = [
-  "No log has been captured from this board.",
+  "No text log has been captured from this board; the menu result rests on a screen observation.",
+  "Stages 3 to 7 have no checkpoint yet.",
 ]
 next_action = [
-  "Wire the firmware log export and capture the first boot attempt.",
+  "Wire the firmware log export and capture the payload, loader and kernel checkpoints of the first full image.",
 ]
 evidence = [
   { kind = "source", reference = "board.toml", result = "Kernel arguments, panic screen setting and the serial console selection." },
+  { kind = "device", reference = "reports/2026-11-09-uefi-menu.md", command = "fastboot boot boot.img", revision = "b1c88c0808db7955a9ffd0e55ff35489e34bc25b", result = "The UniXNU menu appeared after the bootloader sent 1788 KB, confirming the UEFI and UniXNU checkpoints of the bring-up order." },
 ]
