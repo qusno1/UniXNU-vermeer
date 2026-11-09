@@ -1,0 +1,7 @@
+# Redmi K70 (vermeer) kernel configuration. CONFIG_XNU_<NAME> maps to XNU_<NAME>.
+# arch:configs/common.config (arm64e) already sets BUILD_ARCHIVES, SOURCE_CORECRYPTO14,
+# SOURCE_PTHREAD, ARM_DT_PLATFORM, ARMCPU, NATIVE_ARCH_TIMER and NATIVE_PAN.
+CONFIG_XNU_ARMVIRT_PLATFORM=n
+# Storage and GPU archives join by their bring-up stages.
+# CONFIG_XNU_NATIVE_UFS is not set
+# CONFIG_XNU_NATIVE_ADRENO is not set

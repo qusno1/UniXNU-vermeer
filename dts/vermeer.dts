@@ -1,0 +1,48 @@
+// SPDX-License-Identifier: BSD-3-Clause
+// Redmi K70 (vermeer, SM8550). Board values measured on the device:
+// stock ABL device tree (/sys/firmware/fdt, HyperOS OS3.0.307.0.WNKCNXM).
+/dts-v1/;
+/include/ "sm8550.dtsi"
+
+/ {
+    model = "Redmi K70";
+    compatible = "xiaomi,vermeer", "qcom,sm8550";
+
+    // 16 GiB device. The stock ABL map starts the usable range at 0x80000000
+    // with carveouts; the firmware memory policy expands the declared window
+    // at boot, as on the SM8550 reference board.
+    memory@80000000 {
+        device_type = "memory";
+        reg = <0 0x80000000 0 0x80000000>;
+    };
+
+    reserved-memory {
+        #address-cells = <2>;
+        #size-cells = <2>;
+        ranges;
+        // Continuous splash region, identical to the value measured in the
+        // stock tree (0xb8000000, 0x2b00000).
+        splash_region: framebuffer@b8000000 {
+            label = "cont_splash_region";
+            reg = <0 0xb8000000 0 0x2b00000>;
+            no-map;
+        };
+    };
+};
+
+// Stock topology: cpu0-2 Cortex-A510, cpu3-4 A715, cpu5-6 A710, cpu7 X3.
+&cpu0 { unixnu,cluster-type = "E"; };
+&cpu1 { unixnu,cluster-type = "E"; };
+&cpu2 { unixnu,cluster-type = "E"; };
+&cpu3 { unixnu,cluster-type = "P"; };
+&cpu4 { unixnu,cluster-type = "P"; };
+&cpu5 { unixnu,cluster-type = "P"; };
+&cpu6 { unixnu,cluster-type = "P"; };
+&cpu7 { unixnu,cluster-type = "P"; };
+// UFS behind the standard SM8550 controller; the storage driver archive is
+// selected by its bring-up stage. GPU nodes stay exported for Adreno740.
+&ufs { status = "okay"; };
+&ufsphy { status = "okay"; };
+&gpu { status = "okay"; };
+&gmu { status = "okay"; };
+&gpu_smmu { status = "okay"; };

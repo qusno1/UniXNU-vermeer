@@ -1,0 +1,7 @@
+[[source]]
+name = "sm8550"
+kind = "soc"
+git = "https://github.com/UniXNU/UniXNU-sm8550-common.git"
+# The revision reviewed against the SM8550 documentation, also pinned by the
+# reference device repository UniXNU-sheng for the same SoC and OS profile.
+commit = "a9f45dc60c035084b95463781538380f4c3606c9"
