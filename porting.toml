@@ -51,7 +51,7 @@ findings = [
   "[payload.adt] must state chip_id. The ADT generator reads that key and not the profile's [ipsw] table, so leaving it out failed the payload step with KeyError: 'chip_id'; 0x8142 is the ApChipID of the profile's restore image.",
   "[payload.adt] owned_memory_size must fit the single DRAM range the ADT declares. At 0x130000000 (4.75 GiB) no run below 4 GiB qualified, so DarwinBoot placed the kernel at physical 0x8c0190000 and the boot page tables, built for the declared 2 GiB, faulted arm_vm_init.c:1107. 0x10000000 (256 MiB) is DarwinBoot's default and fits.",
   "With the 256 MiB window the kernel passes arm_vm_init and then takes a same-EL data abort with DFSC 0x10, a synchronous external abort, at FAR 0x218f44000 (about 8.4 GiB). That address is a hole: the low extents end at 0x1c04b0000 and the high banks start at 0x880000000. [payload] entry_probe_reset_delay is a diagnostic that answers whether the core reaches the MMU enable, because the fault address alone does not place the stage.",
-]
+  "The entry probe and the panic screen share one code cave and cannot be enabled together: the probe writes stage code into the zero padding after the kernel entry, and the panic screen is assembled after the last probe cave under a fixed PANIC_CAVE_END. With stage 3 on, the 0xa2f-byte panic screen did not fit the remaining padding and the payload step refused it. One diagnostic per run.",
 completion = [
   "The defconfig, feeds and component selection resolve with no required-input placeholder.",
   "unixnu status reports the intended profiles, sources, overrides and patch order.",
