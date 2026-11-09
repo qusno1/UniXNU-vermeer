@@ -46,6 +46,7 @@ findings = [
   "The kernel archive plan adds a component's dependencies before the component, and refuses a component that is selected but has no archive entry; AppleKeyStoreState therefore needs an explicit component:AppleKeyStoreState entry.",
   "Overriding [ipsw] to another product is not free: the prelink step stopped with 'the kernelcache of this IPSW does not match the pin' because the profile's kernelcache digest, AMFI initializer address, root volume UUIDs and trust-cache inputs all belong to the profile's own image. The board therefore keeps the profile image.",
   "[kernel] archives is also where a profile input that nothing else produces has to be built. The profile's prelink extra_args name build/xnu/fileset-reference/mach.release.bcm2837.unstripped.noctf as --fileset-reference, and the build failed with FileNotFoundError until build-fileset-release-reference.py --tree . --lto was appended to the list, as UniXNU-sheng does for the same profile.",
+  "[kernel.prelink] roots replaces the profile's array instead of extending it. The profile ships 31 roots; the reference board on this profile states 44 by adding the USB device and host stacks, and the profile's prelink-regression policy matches that set. With 31 roots, one AppleM2ScalerCSCDriver reference resolves to nothing and the prelink stubs it, which the policy allows 0 of.",
 ]
 completion = [
   "The defconfig, feeds and component selection resolve with no required-input placeholder.",
