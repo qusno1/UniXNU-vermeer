@@ -15,16 +15,16 @@ example = false
 # CONFIG_XNU_NATIVE_ADRENO off so the kernel does not link an archive this tree cannot build.
 include = ["ArmDTPlatform", "ArmCpu", "XnuPrelink", "DarwinBoot", "GopFramebuffer", "AppleKeyStoreState"]
 
-[ipsw]
-url = "https://updates.cdn-apple.com/2026FallFCS/59ffd938-75b6-41e5-af04-f4295ee8aeb3/iPhone17,1_27.0.1_24A446_Restore.ipsw"
-product = "iPhone17,1"
-version = "27.0.1"
-build = "24A446"
-device_class = "d93ap"
-chip_id = 33088
-board_id = 12
-# The OS and Cryptex1,SystemOS disk images join the list for the userdata stage.
-fetch = ["KernelCache", "DeviceTree", "StaticTrustCache", "Cryptex1,SystemTrustCache"]
+# The target image is the one the selected OS profile qualifies: iPadOS 27.0.1 build
+# 24A446 for iPad17,3 (J820AP), the same restore image and product the reference SM8550
+# device uses. The profile's prelink pins (kernelcache digest, AMFI initializer address),
+# its root volume UUIDs and its trust-cache inputs all describe that product, so
+# overriding the image here would invalidate every one of them: the prelink step stops
+# with "the kernelcache of this IPSW does not match the pin". No [ipsw] table, so the
+# profile's url, product, device_class, chip_id and fetch list apply.
+#
+# Consequence to keep in mind: the ADT identity comes from the profile too (iPad17,3 /
+# J820 / J820AP). This board runs that image, it does not impersonate an iPhone.
 
 [kernel]
 defconfig = "vermeer_defconfig"
@@ -78,7 +78,8 @@ panic_screen = true
 kernel_args = ["-v", "serial=3", "debug=0x14e"]
 
 [payload.adt]
-chip_id = "8140"
+# The chip id of the selected OS profile's image: iPad17,3 reports ApChipID 0x8142, and the
+# profile already sets chip_id accordingly. Repeating it here would override the profile.
 # DarwinBoot reserves one contiguous conventional-memory run of this size. The 16 GiB part
 # supplies it above 4 GiB: MemoryMapLib adds the three high banks as conventional memory
 # (0x880000000+0x38700000, 0x8C0000000+0x140000000 and 0xA00000000+0x200000000), so a
@@ -88,18 +89,8 @@ chip_id = "8140"
 owned_memory_size = "0x130000000"
 unique_chip_id = "required"
 
-[adt]
-
-# The identity of the target restore image, not of an Apple product this board imitates:
-# iPhone17,1 / iPhone17,2 in the 27.0.1 24A446 BuildManifest are TargetType "d93" with
-# DeviceClass "d93ap", ApChipID 0x8140 and ApBoardID 0x0C.
-[adt.root.string]
-model = "iPhone17,1"
-"target-type" = "D93"
-compatible = "D93AP"
-
-[adt.product.string]
-model = "D93AP"
+# No [adt] identity override: the OS profile supplies model iPad17,3, target-type J820 and
+# compatible J820AP, matching the restore image its prelink pins were qualified against.
 
 [package]
 unixnu = "../UniXNU"

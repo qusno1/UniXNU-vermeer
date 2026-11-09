@@ -15,7 +15,8 @@ paths = ["board.toml", "feeds.toml", "configs/**", ".github/**", ".gitignore"]
 inputs = [
   "SoC source UniXNU/UniXNU-sm8550-common pinned at a9f45dc60c035084b95463781538380f4c3606c9 in feeds.toml.",
   "OS profile ipados-27.0.1-24A446: arm64e, XNU 12377.121.6, iPadOS 27.0.1 build 24A446.",
-  "Target restore image overridden to iPhone17,1 27.0.1 24A446: device_class d93ap, chip_id 0x8140, board_id 0x0C, TargetType d93, RestoreBehavior Erase.",
+  "Target restore image from the OS profile: iPadOS 27.0.1 build 24A446 for iPad17,3 (J820AP), the same image the reference SM8550 device qualifies. The board does not override [ipsw].",
+  "Profile identity values: device_class j820ap, chip_id 0x8142, board_id 12, and the profile's prelink pins, root volume UUIDs and trust-cache inputs all describe this product.",
   "Board hardware facts measured on the device and in the stock ABL device tree: 16 GiB DRAM, 8 cores with A510/A715/A710/X3 clusters, GICv3 at 0x17100000 with 0x40000 redistributor stride, 19.2 MHz architectural timer, UFS host at 0x1d84000 and PHY at 0x1d80000.",
   "userdata measured on the phone: /dev/block/by-name/userdata -> sda29, 512-byte sectors, start 20562432, size 906909184; in 4096-byte LBAs first 2570304, last 115933951, 113363648 LBAs (432.4 GiB). The whole disk reports 474.3 GiB.",
   "Platform seed: kept outside every repository; supply it with --unique-chip-id or the UNIXNU_UNIQUE_CHIP_ID secret.",
@@ -31,7 +32,7 @@ configuration = [
   "[kernel] patch_series = arch:patches/xnu/series, soc:patches/xnu-12377/series, os:patches/xnu/series, device:patches/xnu/series; this repository ships an empty device series.",
   "configs/vermeer_defconfig leaves CONFIG_XNU_NATIVE_ADRENO and CONFIG_XNU_NATIVE_UFS unset, so the kernel links neither archive and [components] selects neither driver.",
   "[firmware] names Platforms/Xiaomi/vermeerPkg/vermeer.dsc and Build/vermeerPkg/{target}_CLANGPDB/FV/SILICIUM_UEFI.fd in the uefi-vermeer checkout.",
-  "[payload.adt] carries chip_id 8140 and the required platform-seed placeholder; [adt] carries the D93/D93AP identity of the target iPhone17,1 image.",
+  "[payload.adt] carries the required platform-seed placeholder and a 4.75 GiB owned-memory request; the ADT identity comes from the OS profile (iPad17,3 / J820 / J820AP).",
 ]
 procedure = [
   "Run ./unixnu defconfig vermeer_defconfig -D ../UniXNU-vermeer from the UniXNU checkout.",
@@ -43,7 +44,7 @@ findings = [
   "Arrays replace inherited arrays in every profile layer, so [components] include and [kernel] archives must each name the complete set; a component left out of archives but selected in components fails the kernel archive plan with 'needs component entries for'.",
   "soc:configs/sm8550.config sets CONFIG_XNU_NATIVE_ADRENO=y, and the device defconfig applies after the fragments, so leaving the flag out of the defconfig silently enables the GPU archive that the board cannot build yet.",
   "The kernel archive plan adds a component's dependencies before the component, and refuses a component that is selected but has no archive entry; AppleKeyStoreState therefore needs an explicit component:AppleKeyStoreState entry.",
-  "The TryMe profile's [root] volume UUIDs and image digests describe the iPad17,3 restore image; they do not describe the iPhone17,1 image this board overrides to.",
+  "Overriding [ipsw] to another product is not free: the prelink step stopped with 'the kernelcache of this IPSW does not match the pin' because the profile's kernelcache digest, AMFI initializer address, root volume UUIDs and trust-cache inputs all belong to the profile's own image. The board therefore keeps the profile image.",
 ]
 completion = [
   "The defconfig, feeds and component selection resolve with no required-input placeholder.",
@@ -53,7 +54,7 @@ completion = [
 limits = [
   "The record lists implementation and host results only; nothing in this repository has been verified on the phone.",
   "Panel and touch identities come from the stock device tree and from Android userspace, not from an XNU boot; the EL1 PAC key-register state is untested even though the CPU reports paca and pacg.",
-  "The IPSW is overridden to iPhone17,1 while the OS profile's [root] values belong to iPad17,3, so the storage stage cannot match a root volume until those values are replaced or the profile's own image is used.",
+  "The board runs the profile's iPad17,3 image, so its ADT identity is J820AP rather than a Redmi product identity; anything that keys on the Apple product class sees an iPad.",
 ]
 next_action = [
   "Produce the boot image on a macOS host and record the first UEFI, UniXNU and loader checkpoints.",
@@ -456,12 +457,12 @@ status = "implemented"
 components = ["XnuPrelink"]
 paths = ["scripts/package.sh", "package/**", "patches/**", "unixnu.lock"]
 inputs = [
-  "Target restore image iPhone17,1 27.0.1 24A446, resolved through [ipsw] url and fetch list.",
+  "Target restore image from the OS profile: iPadOS 27.0.1 build 24A446 for iPad17,3, including the profile's url and fetch list.",
   "Platform seed supplied at build time, never stored in the repository.",
   "Prelink inputs from the OS profile: kernelcache pin, slide, early security init address, roots and the fileset reference.",
 ]
 configuration = [
-  "[ipsw] fetch lists KernelCache, DeviceTree, StaticTrustCache and Cryptex1,SystemTrustCache.",
+  "[ipsw] comes from the OS profile; board.toml has no [ipsw] table, so the profile's url, product, device_class, chip_id and fetch list apply unchanged.",
   "[payload] volume VERMEER, size_mib 192, loader firmware, panic_screen on, kernel_args -v, serial=3, debug=0x14e.",
   "scripts/package.sh runs the fixed steps deps, preflight, patches, build, pack and verify, and reads every board value from board.toml.",
 ]
@@ -473,7 +474,8 @@ procedure = [
 findings = [
   "The kernel step needs Xcode; this repository cannot produce kernel.macho on a Linux or Windows host.",
   "The payload must stay under the DarwinBoot command-line limit of 1000 bytes and every argument must match the accepted character set.",
-  "The OS profile's root values belong to the iPad17,3 image while this board overrides the IPSW to iPhone17,1, so the userdata step and root matching need the iPhone values.",
+  "scripts/package.sh --check --os 27 --uefi ../uefi-vermeer resolves dependencies, configuration and 73 ordered patches and stops before building.",
+  "Overriding [ipsw] with another product broke the prelink pin: the profile's kernelcache digest belongs to its own image. Keeping the profile image keeps every pin valid.",
 ]
 completion = [
   "Kernel and prelink succeed, the payload contains all declared inputs, and the boot image matches the bootloader format and size limit.",
