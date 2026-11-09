@@ -8,6 +8,23 @@
     model = "Redmi K70";
     compatible = "xiaomi,vermeer", "qcom,sm8550";
 
+    // FastConnect 7800 (WCN7850), the connectivity pair of SM8550; the WiFi
+    // probe fills local-mac-address at runtime.
+    wlan {
+        compatible = "qcom,wcn7850";
+        unixnu,adt-name = "wlan";
+        status = "okay";
+    };
+
+    bluetooth {
+        device_type = "bluetooth";
+        compatible = "qcom,wcn7850-bt";
+        unixnu,adt-name = "bluetooth";
+        transport-encoding = <1>;
+        transport-speed = <3200000>;
+        status = "okay";
+    };
+
     // 16 GiB device. The stock ABL map starts the usable range at 0x80000000
     // with carveouts; the firmware memory policy expands the declared window
     // at boot, as on the SM8550 reference board.
