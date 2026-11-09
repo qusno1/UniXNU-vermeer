@@ -141,6 +141,7 @@ procedure = [
 findings = [
   "The stock tree exposes generic qcom,kryo compatibles; the core types in the SoC dtsi and the stock ABL node names both give the same A510/A715/A710/X3 split.",
   "Without native-smp-secondary.patch the secondary cores decode their index from Affinity0, which is empty on SM8550.",
+  "configs/vermeer_defconfig also carries the kernel switches that this profile needs and the shared fragments do not supply: CONFIG_XNU_CRYPTO_BOOTSTRAP=\"source\" over the profile's \"prelinked\", because prelinked leaves OSKext.cpp calling source_corecrypto14_original and source_corecrypto14_start_once while prng_random.o no longer defines them, and the first pass links no crypto archive. CONFIG_XNU_NATIVE_ADRENO and CONFIG_XNU_NATIVE_UFS stay unset until their board inputs exist.",
 ]
 completion = [
   "Every enabled CPU reaches its entry checkpoint.",
