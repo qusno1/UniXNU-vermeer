@@ -2,6 +2,13 @@
 # arch:configs/common.config (arm64e) already sets BUILD_ARCHIVES, SOURCE_CORECRYPTO14,
 # SOURCE_PTHREAD, ARM_DT_PLATFORM, ARMCPU, NATIVE_ARCH_TIMER and NATIVE_PAN.
 CONFIG_XNU_ARMVIRT_PLATFORM=n
-# Storage and GPU archives join by their bring-up stages.
-# CONFIG_XNU_NATIVE_UFS is not set
+# soc:configs/sm8550.config sets CONFIG_XNU_NATIVE_ADRENO=y. It is turned off here until the
+# board's GPU inputs exist (ZAP firmware, GMU votes, GPU SMMU windows): Adreno740/AdrenoMetal
+# are not in [components] and their archives are not in [kernel] archives, so the kernel must
+# not reference them. Re-enable the flag, both components and their archive entries together.
 # CONFIG_XNU_NATIVE_ADRENO is not set
+# Storage joins at the storage stage: the root volume lives on userdata, so a boot image built
+# without it reaches the loader but cannot mount a root. CONFIG_XNU_NATIVE_UFS=y additionally
+# needs component:ShengUfs in [kernel] archives and native-ufs-root=1 plus sheng-pmgr=2 in
+# [payload] kernel_args, which payload.py enforces against the linked _sheng_pmgr_run symbol.
+# CONFIG_XNU_NATIVE_UFS is not set

@@ -58,6 +58,13 @@
 &cpu7 { unixnu,cluster-type = "P"; };
 // UFS behind the standard SM8550 controller; the storage driver archive is
 // selected by its bring-up stage. GPU nodes stay exported for Adreno740.
+//
+// GMU register windows differ from the shared SoC description: the stock vermeer
+// device tree describes qcom,gmu@3d69000 as <0x3d68000 0x37000>, <0xb280000
+// 0x10000>, <0x3d40000 0x10000> with the same end address as the shared
+// gmu@3d6a000 window, while the rscc window starts at 0x3d40000 instead of
+// 0x3d50000. No GPU driver is selected yet, so the shared node is left in place
+// and this difference is unresolved until the gpu stage; see porting.toml.
 &ufs { status = "okay"; };
 &ufsphy { status = "okay"; };
 &gpu { status = "okay"; };

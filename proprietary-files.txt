@@ -1,4 +1,8 @@
 # Required firmware inputs: relative path | source | SHA-256 | consumer
 # Fill each entry from this board's firmware package.
-firmware/dtb/vermeer.dtb | stock ABL device tree, adb pull /sys/firmware/fdt on HyperOS OS3.0.307.0.WNKCNXM (2026-11-09) | (recorded on extraction) | boot image device tree, firmware preflight
-Binaries/vermeer/RawFiles/SecParti.cfg | placeholder from Binaries/9707f pending the vermeer firmware import | pending | firmware volume RAW section (no consumer at VERMEER_VENDOR_HW=0)
+firmware/dtb/vermeer.dtb | stock ABL device tree, adb pull /sys/firmware/fdt on HyperOS OS3.0.307.0.WNKCNXM (2026-11-09), 808716 bytes | b983bc0d5d3b21b3eeb6dd2cb1531082501228a724815cbc3112f842fd7a958c | boot image device tree, firmware preflight
+Binaries/vermeer/RawFiles/SecParti.cfg | placeholder copied from Binaries/9707f pending the vermeer firmware import; not from this board | d390798df83c3c4f5b43e4f07bdd368d93f5c08617d97579518d9242263bc44e | firmware volume RAW section (no consumer at VERMEER_VENDOR_HW=0)
+# Firmware archive the inputs above come from: vermeer_images_OS3.0.307.0.WNKCNXM_16.0.tgz,
+# 868286464 bytes, md5 4ad7d2d830359115ef72ee32eb0a1956. The archive lives outside the
+# repository and is not referenced by [firmware.image] yet, because the vendor import that
+# would consume it is not written.

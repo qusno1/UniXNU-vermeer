@@ -10,7 +10,10 @@ kit = "vermeer"
 example = false
 
 [components]
-include = ["ArmDTPlatform", "ArmCpu", "XnuPrelink", "DarwinBoot", "GopFramebuffer", "AppleKeyStoreState", "Adreno740", "AdrenoMetal"]
+# GPU support is deferred to the gpu stage: Adreno740/AdrenoMetal need the board's ZAP firmware,
+# GMU votes and GPU SMMU inputs, none of which are imported yet. The defconfig keeps
+# CONFIG_XNU_NATIVE_ADRENO off so the kernel does not link an archive this tree cannot build.
+include = ["ArmDTPlatform", "ArmCpu", "XnuPrelink", "DarwinBoot", "GopFramebuffer", "AppleKeyStoreState"]
 
 [ipsw]
 url = "https://updates.cdn-apple.com/2026FallFCS/59ffd938-75b6-41e5-af04-f4295ee8aeb3/iPhone17,1_27.0.1_24A446_Restore.ipsw"
@@ -25,14 +28,17 @@ fetch = ["KernelCache", "DeviceTree", "StaticTrustCache", "Cryptex1,SystemTrustC
 
 [kernel]
 defconfig = "vermeer_defconfig"
-archives = ["build-corecrypto-14.py", "build-corecrypto-14.py --namespace", "component:ArmDTPlatform", "component:ArmCpu", "build-libpthread-kernel.py"]
+archives = ["build-corecrypto-14.py", "build-corecrypto-14.py --namespace", "component:ArmDTPlatform", "component:ArmCpu", "build-libpthread-kernel.py", "component:AppleKeyStoreState"]
 # Arrays replace the profile lists; keep arch, soc, os and device in order.
 config_fragments = ["arch:configs/common.config", "soc:configs/sm8550.config", "os:configs/ipados.config"]
 patch_series = ["arch:patches/xnu/series", "soc:patches/xnu-12377/series", "os:patches/xnu/series", "device:patches/xnu/series"]
 
 [userdata]
+# Measured on the phone 2026-11-09: /dev/block/by-name/userdata -> sda29, 512-byte
+# sectors, start 20562432, size 906909184. In 4096-byte LBAs that is first 2570304 and
+# last 115933951 (113363648 LBAs, 432.4 GiB).
 first_lba = 2570304
-last_lba = 115936099
+last_lba = 115933951
 lba_bytes = 4096
 
 [device_tree]
@@ -60,6 +66,11 @@ dtb_node = [{ "path" = "/reserved-memory/splash_region", "props" = [{ "name" = "
 
 [payload]
 volume = "VERMEER"
+# 192 MiB as on sheng for the same 24A446 profile. A community vermeer port reports that this
+# K70 refuses a ~198 MB fastboot boot image part-way through the transfer ("Device sent unknown
+# status code") and uses 64 MiB instead; that is unverified here. If the first `fastboot boot`
+# fails during the transfer rather than in the firmware, lower this together with the same
+# report's notes and rebuild.
 size_mib = 192
 loader = "firmware"
 title = "UniXNU"
@@ -68,18 +79,27 @@ kernel_args = ["-v", "serial=3", "debug=0x14e"]
 
 [payload.adt]
 chip_id = "8140"
+# DarwinBoot reserves one contiguous conventional-memory run of this size. The 16 GiB part
+# supplies it above 4 GiB: MemoryMapLib adds the three high banks as conventional memory
+# (0x880000000+0x38700000, 0x8C0000000+0x140000000 and 0xA00000000+0x200000000), so a
+# 4.75 GiB window fits inside one bank. VermeerBootMemoryDxe's 1 GiB ADD_LIMIT only bounds
+# the DRAM it fills in below 4 GiB. Unverified on this board until a boot log records the
+# allocated window.
 owned_memory_size = "0x130000000"
 unique_chip_id = "required"
 
 [adt]
 
+# The identity of the target restore image, not of an Apple product this board imitates:
+# iPhone17,1 / iPhone17,2 in the 27.0.1 24A446 BuildManifest are TargetType "d93" with
+# DeviceClass "d93ap", ApChipID 0x8140 and ApBoardID 0x0C.
 [adt.root.string]
 model = "iPhone17,1"
-"target-type" = "D63"
-compatible = "D63AP"
+"target-type" = "D93"
+compatible = "D93AP"
 
 [adt.product.string]
-model = "D63AP"
+model = "D93AP"
 
 [package]
 unixnu = "../UniXNU"
