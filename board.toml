@@ -132,13 +132,19 @@ volume = "VERMEER"
 size_mib = 192
 loader = "firmware"
 title = "UniXNU"
-panic_screen = true
 # Diagnostic run: stage 3 of the entry probe waits this many seconds after the MMU is enabled,
 # then issues PSCI SYSTEM_RESET. A reboot by itself after the delay proves the CPU got through
 # the MMU enable; no reboot means it did not. The frame buffer is not mapped at that point, so
-# the delay is the signal, not the screen. Remove this key once the question is answered: it
-# costs one reset per boot.
+# the delay is the signal, not the screen.
+#
+# panic_screen is off for this run because the two diagnostics share one code cave: the entry
+# probe places its stage code in the padding after the kernel entry, and the panic screen is
+# assembled right after the last probe cave, bounded by a fixed PANIC_CAVE_END. With stage 3
+# present the panic screen overflowed it:
+#   panic screen is 0xa2f bytes at 0xfffffff00aeed620, the padding ends at 0xfffffff00aeedff0
+# One diagnostic per run; restore panic_screen once this question is answered.
 entry_probe_reset_delay = 10
+panic_screen = false
 kernel_args = ["-v", "serial=3", "debug=0x14e"]
 
 [payload.adt]
