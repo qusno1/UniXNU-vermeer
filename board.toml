@@ -217,6 +217,32 @@ vmm-present = 1
 [adt.chosen.u32]
 kernel-ctrr-to-be-enabled = 0
 
+# A bring-up boot-set identity, so launchd's mount phase has something to check.
+#
+# Launchd runs /sbin/mount and the child exits 66 when the kernel has published no
+# /chosen/boot-manifest-hash. The kernel logs the reason before that: AppleARMSFRManifest looks
+# for /chosen/boot-object-manifests, then /chosen/secure-boot-hashes inside it, then the
+# boot-manifest-hash key, and with none of them present it reports
+#
+#   AppleARMSFRManifest: Error: Failed to open reg-entry /chosen/secure-boot-hashes
+#   AppleARMSFRManifest: Error: Failed to find entry /chosen/iBoot
+#   AppleARMSFRManifest: Error: Failed to publish sfr manifest
+#
+# Those errors are non-fatal - the boot reaches IOKit, APFS and the root-device lookup with
+# them on screen - so this property does not affect reaching a root device. It matters one
+# stage later. Two other boards on this kernel hit exactly this: marble's launchd mount phase
+# exited 66 with "failed to get boot-manifest-hash", and sirius passed mount-phase-1 and
+# mount-phase-2 and reported "Early boot complete" only after supplying the value.
+#
+# The value is a development-only bring-up identity, the SHA-384 of "VermeerBringup.BootSet.v1"
+# with its NUL, exactly as marble uses SHA-384 of "MarbleBringup.BootSet.v1\0" and sirius uses
+# "UkeBringup.BootSet.v1\0". It is opaque material that lets the mount phase see a stable boot
+# set; it is not an owner signature and it authenticates nothing. The verified paths stay
+# fail-closed, and this is the reason the property is documented here rather than silently
+# generated: whoever reads the record must see that this board's root is unauthenticated.
+[adt.chosen.bytes]
+boot-manifest-hash = "811d0a8bc9773098800a583abdf20cdfb481c8ffe0ef6474b5a71807b58022fea06a54f7c9a1e82d7b6dc7fd1fc4106f"
+
 # The profile's prelink-regression policy is suspended for this board.
 #
 # The policy was authored against a kernel that carries the display stack: its
