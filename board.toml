@@ -132,19 +132,16 @@ volume = "VERMEER"
 size_mib = 192
 loader = "firmware"
 title = "UniXNU"
-# Diagnostic run: stage 3 of the entry probe waits this many seconds after the MMU is enabled,
-# then issues PSCI SYSTEM_RESET. A reboot by itself after the delay proves the CPU got through
-# the MMU enable; no reboot means it did not. The frame buffer is not mapped at that point, so
-# the delay is the signal, not the screen.
+# The stage-3 probe answered its question: with entry_probe_reset_delay = 10 the phone
+# showed the entry colour bands and then reset by itself, which only that probe does and
+# only after the MMU is enabled. The core therefore reaches past arm_vm_init with the boot
+# page tables in place, so the probe is gone and the panic screen takes the code cave back.
 #
-# panic_screen is off for this run because the two diagnostics share one code cave: the entry
-# probe places its stage code in the padding after the kernel entry, and the panic screen is
-# assembled right after the last probe cave, bounded by a fixed PANIC_CAVE_END. With stage 3
-# present the panic screen overflowed it:
-#   panic screen is 0xa2f bytes at 0xfffffff00aeed620, the padding ends at 0xfffffff00aeedff0
-# One diagnostic per run; restore panic_screen once this question is answered.
-entry_probe_reset_delay = 10
-panic_screen = false
+# The two share one cave: the probe writes stage code into the zero padding after the kernel
+# entry and the panic screen is assembled after the last probe cave under a fixed
+# PANIC_CAVE_END, so enabling both overflowed it (panic screen is 0xa2f bytes at
+# 0xfffffff00aeed620, the padding ends at 0xfffffff00aeedff0). One diagnostic per run.
+panic_screen = true
 kernel_args = ["-v", "serial=3", "debug=0x14e"]
 
 [payload.adt]
