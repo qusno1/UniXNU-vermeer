@@ -1,0 +1,12 @@
+# Patches are applied with git apply, which requires the exact bytes the patch was
+# generated with. A CRLF checkout breaks every hunk with "patch does not apply",
+# which is what happened to patches/xnu/vermeer-4k-block-split-hint.patch before
+# this file existed. UniXNU's own .gitattributes carries the same rule.
+*.patch text eol=lf -whitespace
+*.sh text eol=lf
+*.py text eol=lf
+
+# Firmware and device tree inputs are binary; never touch their bytes.
+*.dtb binary
+*.bin binary
+*.img binary
