@@ -1,0 +1,16 @@
+diff --git a/osfmk/arm64/arm_vm_init.c b/osfmk/arm64/arm_vm_init.c
+--- a/osfmk/arm64/arm_vm_init.c
++++ b/osfmk/arm64/arm_vm_init.c
+@@ -1040,7 +1040,12 @@
+ 				 */
+ 				pmap_paddr_t block_pa = tmplate & ARM_TTE_BLOCK_L2_MASK;
+ 				pt_entry_t attributes = tmplate & ~(ARM_TTE_BLOCK_L2_MASK | ARM_PTE_HINT_MASK | ARM_PTE_TYPE_VALID);
++				vm_offset_t split_end = round_page(_end);
+ 				for (i = 0; i <= (ARM_TT_L3_INDEX_MASK >> ARM_TT_L3_SHIFT); i++) {
++					vm_offset_t entry_va = va + ((vm_offset_t)i << ARM_TT_L3_SHIFT);
++					if ((start <= entry_va) && (entry_va < split_end)) {
++						continue;
++					}
+ 					ppte[i] = (block_pa + ((pmap_paddr_t)i << ARM_TT_L3_SHIFT)) | attributes | ARM_PTE_TYPE_VALID;
+ 				}
+ 			}
