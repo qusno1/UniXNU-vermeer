@@ -22,14 +22,20 @@ CONFIG_XNU_KERNEL_CHAINED_FIXUPS=y
 # are not in [components] and their archives are not in [kernel] archives, so the kernel must
 # not reference them. Re-enable the flag, both components and their archive entries together.
 # CONFIG_XNU_NATIVE_ADRENO is not set
-# Storage is on: CONFIG_XNU_NATIVE_UFS links the ShengUfs archive from [kernel] archives, and
-# that driver is what publishes the IOMedia that IOFindBSDRoot waits for.
+# Storage is on. CONFIG_XNU_NATIVE_UFS links the UFS driver from [kernel] archives.
 #
-# Deliberately minimal for the first storage boot. sheng enables the whole owner-verified stack
-# (CONFIG_XNU_SOURCE_STORAGE, CONFIG_XNU_OWNER_ROOT_AUDIT, CONFIG_XNU_OWNER_ROOT_TRUST,
-# CONFIG_XNU_OWNER_BOOT_MANIFEST, CONFIG_XNU_OWNER_CACHE_MOUNT, CONFIG_XNU_OWNER_DATA_MOUNT,
-# CONFIG_XNU_OWNER_UNION_SYSTEMOS), and each of those needs a signed policy bundle plus a Data
-# seed with a matching UUID. Bringing them all up before the transport has ever moved a block
-# would make a failure impossible to attribute. The transport, the SMMU takeover and one
-# READ(10) come first; the owner and Data layers join once the block device is proven.
+# On arm64e the driver is not a standalone kext: build-arm-driver.py routes ShengUfs to
+# build-sheng-source-storage.py, which builds the deferred IOBlockStorageDevice adapter plus the
+# SourceStorage runtime that loads the original IOStorageFamily and APFS and authenticates the
+# signed root policies. That makes the policy bundle a build input, so scripts/policies/
+# ipados-27.0.1-24A446 carries the OS and SystemOS headers and their 395-byte owner anchor.
+# Those are the same files sheng uses for this profile, and they are the right ones because the
+# profile pins the same image: os_image_sha256 8a12cdad... and systemos_image_sha256 d5b4873d...
+# with the matching volume UUIDs.
+#
+# CONFIG_XNU_SOURCE_STORAGE_TABLES="userdata" keeps only the 544-byte signed header in the boot
+# image and leaves the block tables in the userdata image, which is what lets the payload stay
+# inside the fastboot size limit.
 CONFIG_XNU_NATIVE_UFS=y
+CONFIG_XNU_SOURCE_STORAGE=y
+CONFIG_XNU_SOURCE_STORAGE_TABLES="userdata"

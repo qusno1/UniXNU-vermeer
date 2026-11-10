@@ -224,7 +224,7 @@ evidence = [
 id = "storage"
 status = "implemented"
 components = ["ShengUfs", "VerifiedRoot", "VirtioMmioBlock"]
-paths = ["package/*Ufs*", "scripts/*ufs*", "scripts/*storage*", "scripts/*userdata*", "feeds.toml", "configs/**"]
+paths = ["package/*Ufs*", "scripts/*ufs*", "scripts/*storage*", "scripts/*userdata*", "scripts/policies/**", "feeds.toml", "configs/**"]
 inputs = [
   "UFS host at 0x1d84000 and PHY at 0x1d80000, both standard SM8550 positions confirmed in the stock device tree.",
   "userdata starts at LBA 2570304 with 4096-byte LBAs and ends at LBA 115933951, measured on the phone.",
