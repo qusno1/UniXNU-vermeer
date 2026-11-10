@@ -201,6 +201,22 @@ unique_chip_id = "required"
 [adt.defaults.u32]
 vmm-present = 1
 
+# This SoC has no CTRR, so kernel text stays writable by hardware and XNU has to be told.
+# iBoot writes this property on Apple SoCs; ml_unsafe_kernel_text_init()
+# (osfmk/arm64/machine_routines.c:3385) reads it from /chosen under the same STARTUP TUNABLES
+# rank and, when it is absent, leaves _unsafe_kernel_text_initialized false. The first reader
+# then asserts, and the assert fires through the brk trap handler:
+#
+#   machine_routines.c:3379 Assertion failed: _unsafe_kernel_text_initialized
+#
+# On this boot that reader is dtrace_sdt_probes_restricted() (bsd/dev/dtrace/dtrace_subr.c:456),
+# called by sdt_init() (bsd/dev/dtrace/sdt.c:698) from bsd_init. The value 0 means "CTRR not to
+# be enabled", which also sends the CTRR POST test (platform_tests.c:1570) and the FBT probe
+# check (dtrace_subr.c:442) down their disabled branches. The reference board declares the same
+# property for the same reason.
+[adt.chosen.u32]
+kernel-ctrr-to-be-enabled = 0
+
 # The profile's prelink-regression policy is suspended for this board.
 #
 # The policy was authored against a kernel that carries the display stack: its
