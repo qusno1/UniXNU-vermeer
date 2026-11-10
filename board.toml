@@ -142,7 +142,25 @@ title = "UniXNU"
 # PANIC_CAVE_END, so enabling both overflowed it (panic screen is 0xa2f bytes at
 # 0xfffffff00aeed620, the padding ends at 0xfffffff00aeedff0). One diagnostic per run.
 panic_screen = true
-kernel_args = ["-v", "serial=3", "debug=0x14e"]
+# use_contiguous_hint=0 turns off the contiguous-entry hint in the boot page tables.
+#
+# arm_vm_init.c:1070 only sets ARM_PTE_HINT in ptmp when use_contiguous_hint is true, and the
+# two asserts right below it assume the hint semantics of 16 KiB granules. This port runs
+# 4 KiB kernel pages (--four-k-page-tables) with native-4k-block-split.patch, which pre-fills
+# the L3 entries of a split 2 MiB block so the kext headers sharing it stay mapped. Those
+# pre-filled entries carry no hint, and with the hint enabled the prelink reported:
+#
+#   arm_vm_init.c:1113 HINTMISMATCH kva=1 i=400
+#   va=fffffff007190000 ppte=0000000e7f90683 ptmp=0000000e7f90683
+#
+# PE_parse_boot_argn("use_contiguous_hint", ...) reads this switch (arm_vm_init.c:2077), and
+# the reference board passes the same argument for the same profile. Without the hint the
+# branch and both asserts are skipped, which is the state a 4 KiB mapping is defined to have.
+#
+# kt_fixed_zones=120 sizes the fixed kalloc zones (kalloc.c:463 TUNABLE). -no_slto_panic
+# keeps the SLTO check from panicking (startup.c:575). Both are memory/startup switches that
+# do not depend on board hardware, and the reference board passes them for this profile.
+kernel_args = ["-v", "serial=3", "debug=0x14e", "use_contiguous_hint=0", "kt_fixed_zones=120", "-no_slto_panic"]
 
 [payload.adt]
 # Required: the ADT generator reads this key of [payload.adt], not the profile's [ipsw] table.
