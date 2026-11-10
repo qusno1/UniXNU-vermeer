@@ -165,7 +165,20 @@ panic_screen = true
 # kt_fixed_zones=120 sizes the fixed kalloc zones (kalloc.c:463 TUNABLE). -no_slto_panic
 # keeps the SLTO check from panicking (startup.c:575). Both are memory/startup switches that
 # do not depend on board hardware, and the reference board passes them for this profile.
-kernel_args = ["-v", "serial=3", "debug=0x14e", "use_contiguous_hint=0", "kt_fixed_zones=120", "-no_slto_panic", "native-ufs-root=1", "vermeer-root-partition=unixnu"]
+kernel_args = ["-v", "serial=3", "debug=0x14e", "use_contiguous_hint=0", "kt_fixed_zones=120", "-no_slto_panic", "native-source-storage=1", "native-ufs-root=1", "vermeer-root-partition=unixnu"]
+
+# The signed root-policy sidecar. build-sheng-source-storage.py assembles it from
+# scripts/policies/<build>/{OS,SystemOS} as a VROOTB01 container, and the payload step copies it
+# next to the kernel as kernel.macho.vroot. DarwinBoot validates that header again, places the
+# bytes in the kernel window and writes {physical, length} into the ADT's
+# /chosen/memory-map/RootPolicies placeholder, which only exists when this key is set.
+#
+# NativeUfs cannot start without it. native_source_root_policies_load() reads the placeholder,
+# copies the container into kernel memory, marks it read-only, and verifies every envelope
+# against the 395-byte owner anchor that the same build compiles in as verified_root_key. A
+# missing placeholder or a failed signature is a panic, not a soft failure, so the bundle and
+# the kernel are built together and must not be swapped independently.
+root_policies = "{tree}/build/sheng-source-storage/root-policies.bin"
 
 [payload.adt]
 # Required: the ADT generator reads this key of [payload.adt], not the profile's [ipsw] table.

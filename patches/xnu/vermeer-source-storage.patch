@@ -1,0 +1,28 @@
+--- a/bsd/kern/bsd_init.c
++++ b/bsd/kern/bsd_init.c
+@@ -794,6 +794,25 @@
+ 	/* Initialize the file systems. */
+ 	bsd_init_kprintf("calling vfsinit\n");
+ 	vfsinit();
++
++	/*
++	 * vermeer: start the source-built UFS adapter once IOKit is up.
++	 *
++	 * The adapter is not a kext in the prelinked set. It is compiled against the source
++	 * IOBlockStorageDevice and registered at run time, after the original IOStorageFamily
++	 * and APFS are loaded, because it subclasses a base class whose layout only the
++	 * original kext can provide. That is why the call is here and not a [kernel.prelink]
++	 * root: at this point vfsinit() has run, the IOKit bootstrap exists, and the platform
++	 * expert is published, which is what the adapter attaches to.
++	 *
++	 * The weak import keeps a kernel without the runtime linkable; this board always has
++	 * it, and native_source_storage_start() itself returns early unless
++	 * native-source-storage=1 is on the command line.
++	 */
++	extern void native_source_storage_start(void) __attribute__((weak_import));
++	if (&native_source_storage_start) {
++		native_source_storage_start();
++	}
+ #if DEVELOPMENT || DEBUG
+ 	native_apfs_load_probe();
+ 	native_mobile_graphics_load_probe();
