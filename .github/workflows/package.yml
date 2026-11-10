@@ -35,6 +35,12 @@ jobs:
         with:
           repository: UniXNU/UniXNU
           path: UniXNU
+          # Pinned so a run is reproducible: this is the UniXNU revision that produced the
+          # recorded images, and it pins drivers/AppleKeyStoreState to 58e5461, which the
+          # upstream repository still serves. Upstream main moved to a submodule commit
+          # (6ff4f11d) whose repository does not contain it, so an unpinned checkout fails
+          # with "upload-pack: not our ref" before any build starts. Bump this deliberately.
+          ref: 95ad78129203442c3c14c02336303adbddf8d0a3
           submodules: recursive
       - uses: actions/checkout@v4
         with:
