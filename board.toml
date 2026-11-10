@@ -187,6 +187,20 @@ unique_chip_id = "required"
 # No [adt] identity override: the OS profile supplies model iPad17,3, target-type J820 and
 # compatible J820AP, matching the restore image its prelink pins were qualified against.
 
+# The board reports a virtual platform, because it has no Apple PMGR and no SEP.
+#
+# AMFI looks for an ApplePMGRNub while it initialises and panics with the message this board
+# hit at ConfigurationSettings.cpp:392:
+#
+#   "AMFI: No PMGR\n" @ConfigurationSettings.cpp:392
+#
+# payload.py states the same rule when it inspects a native-root boot: a device tree that
+# declares vmm-present has no PMGR for AMFI to wait for, so it needs no PMGR stand-in. The
+# firmware runs with VERMEER_VENDOR_HW = 0 and loads no vendor PMIC/RPMh stack, so there is
+# no PMGR to publish. The reference board declares the same flag for this reason.
+[adt.defaults.u32]
+vmm-present = 1
+
 # The profile's prelink-regression policy is suspended for this board.
 #
 # The policy was authored against a kernel that carries the display stack: its

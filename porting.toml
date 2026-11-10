@@ -453,6 +453,7 @@ procedure = [
 ]
 findings = [
   "With the vendor hardware stack disabled, nothing in the firmware programs RPMh or the regulators, so the board runs on the state the previous boot stage left.",
+  "Because there is no PMGR to publish, the ADT declares vmm-present in [adt.defaults.u32]. Without it AMFI waits for an ApplePMGRNub and panics with \"AMFI: No PMGR\" at ConfigurationSettings.cpp:392, which is exactly what the board hit once the kernel got past the pmap. payload.py states the same rule for native-root boots, and the reference board declares the flag for the same reason.",
 ]
 completion = [
   "Declared power controls and battery readings match observations, and each claimed sleep or resume transition restores its dependent peripherals.",
