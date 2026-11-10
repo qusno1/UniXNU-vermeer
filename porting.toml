@@ -4,7 +4,7 @@ schema_version = 1
 name = "vermeer"
 soc = "SM8550"
 os_profile = "ipados-27.0.1-24A446"
-summary = "Redmi K70 (vermeer, SM8550, 16 GiB, UFS 4.0). Port state: device repository and board firmware package exist, the firmware volume builds, and no boot image has been produced or run on hardware yet."
+summary = "Redmi K70 (vermeer, SM8550, 16 GiB, UFS 4.0). Port state: the firmware volume builds and runs, the UniXNU menu appears, and the prelinked iPadOS 27 kernel enters on the phone and runs through IOKit and bsd_init to the root-device lookup. The boot stops there because no storage driver is selected, so stage 6 (root mount) and stage 7 (launchd) are still ahead."
 
 # Ownership of the board configuration. Every selected component appears in exactly one area.
 [[area]]
@@ -154,18 +154,21 @@ findings = [
   "configs/vermeer_defconfig also carries the kernel switches that this profile needs and the shared fragments do not supply: CONFIG_XNU_CRYPTO_BOOTSTRAP=\"source\" over the profile's \"prelinked\", because prelinked leaves OSKext.cpp calling source_corecrypto14_original and source_corecrypto14_start_once while prng_random.o no longer defines them, and the first pass links no crypto archive. CONFIG_XNU_NATIVE_ADRENO and CONFIG_XNU_NATIVE_UFS stay unset until their board inputs exist.",
   "kernel_args carries three switches beyond -v/serial/debug that the reference board also passes: use_contiguous_hint=0, kt_fixed_zones=120 and -no_slto_panic. The first is required because 4 KiB kernel pages plus native-4k-block-split.patch make the pmap hint asserts unsatisfiable; the other two are kernel-internal memory and startup tunables with no board dependency. The command line is 79 bytes, well inside DarwinBoot's 1000-byte limit.",
   "[adt.defaults.u32] vmm-present = 1 tells AMFI that no ApplePMGRNub will appear. The firmware runs with VERMEER_VENDOR_HW = 0 and publishes no vendor PMIC/RPMh stack, so without the flag AMFI waits for a PMGR that cannot exist and panics with \"AMFI: No PMGR\" at ConfigurationSettings.cpp:392.",
-  "With vmm-present set, the boot leaves the boot page tables and AMFI behind and reaches BSD initialisation. The last phone run stopped on kernel_bootstrap_thread -> bsd_init -> sdt_init -> dtrace_sdt_probes_restricted -> an assertion in machine_routines.c, which is the CTRR property recorded in the configuration area; the kernel itself, its entry, the ADT handoff and AMFI all run before that point.",
+  "[adt.chosen.u32] kernel-ctrr-to-be-enabled = 0 is what lets the kernel survive its first /chosen read. ml_unsafe_kernel_text_init (osfmk/arm64/machine_routines.c:3385) reads that iBoot property at STARTUP TUNABLES rank and leaves _unsafe_kernel_text_initialized false when it is absent, so dtrace_sdt_probes_restricted() -- the first code that asks, called from sdt_init() during bsd_init -- asserts at machine_routines.c:3379. The assert surfaces through the brk trap handler, which is why the screen shows the machine_routines.c:3379 text followed by a register dump: pc 0xfffffff00b5b1a48 is _ml_unsafe_kernel_text.cold.1+0xc and the stack holds _dtrace_sdt_probes_restricted+0x10, _sdt_init+0x34 and _bsd_init+0x674. The value 0 means the SoC has no CTRR, so kernel text stays writable by hardware; the reference board declares the same property with the same value for the same reason.",
+  ".github/workflows/package.yml pins the UniXNU checkout to 95ad78129203442c3c14c02336303adbddf8d0a3, the revision the recorded images were built from, instead of tracking the upstream default branch. Upstream main now pins drivers/AppleKeyStoreState to 6ff4f11d, a commit that the UniXNU/AppleKeyStoreState repository does not contain, so an unpinned run dies in its third checkout step with 'upload-pack: not our ref 6ff4f11d' before the tools step. The pin also makes a run reproducible; bump it together with the images it produces.",
+  "With the CTRR property the kernel runs all the way through IOKit and stops on a message rather than an assert: 'Failed to mount root device @IOKitBSDInit.cpp:1001'. frames decode to IOFindBSDRoot.cold.6, IOFindBSDRoot+0xfa0, bsd_init+0x70c and kernel_bootstrap_thread+0x3ec, so the call chain is kernel_bootstrap_thread -> bsd_init -> setconf -> IOFindBSDRoot -> panic. Stage 5 passes; the boot now stops at the first step of stage 6 because no block-storage driver exists to publish an IOMedia for /chosen/root-matching to match.",
+  "With vmm-present set, the boot leaves the boot page tables and AMFI behind and reaches BSD initialisation. The run before this one stopped on kernel_bootstrap_thread -> bsd_init -> sdt_init -> dtrace_sdt_probes_restricted -> an assertion in machine_routines.c, which is the CTRR property recorded in the configuration area; the kernel itself, its entry, the ADT handoff and AMFI all run before that point.",
 ]
 completion = [
   "Every enabled CPU reaches its entry checkpoint.",
   "Timer and IPI handling works on each enabled CPU.",
 ]
 limits = [
-  "No CPU has been started under XNU on this board.",
+  "Secondary CPUs have not been started under XNU on this board: the boot is uniprocessor up to the root-device panic, so timer and IPI handling per core is unverified even though the boot CPU runs with interrupts and the platform timer.",
   "CPU frequency scaling, idle states and the exact GIC redistributor count per cluster are not recorded for vermeer.",
 ]
 next_action = [
-  "Record the GIC redistributor count and per-CPU entry checkpoints from the first device boot.",
+  "Record the GIC redistributor count and the secondary CPU entry checkpoints once a root device exists; until then the boot panics in IOFindBSDRoot before SMP start.",
 ]
 evidence = [
   { kind = "source", reference = "dts/vermeer.dts", result = "Cluster assignment for cpu0-7 and the enabled UFS, GPU, GMU and GPU SMMU nodes." },
@@ -541,17 +544,20 @@ procedure = [
 findings = [
   "The reference platform documents an Advanced Logger with QR export as the fallback log channel; this board's firmware has not wired it.",
   "After the firmware starts, the phone disappears from both adb and fastboot: the firmware replaces those USB stacks, so the screen is the only channel until a log export exists.",
-  "One boot attempt is recorded: the UniXNU menu appeared, stages 1 and 2.",
+  "The panic screen is what makes the last two failures readable at all. Each run it delivered a message plus a frame chain that resolves to symbols in the same kernel.macho, which is enough to name an entire call path without a serial port: the CTRR assert resolved to machine_routines.c:3379 with dtrace_sdt_probes_restricted and sdt_init on the stack, and the root-device stop resolved to IOFindBSDRoot.cold.6, IOFindBSDRoot+0xfa0, bsd_init+0x70c and kernel_bootstrap_thread+0x3ec.",
+  "Keep notes/kernel-<image>.nm.txt (llvm-nm -n of that image's kernel.macho) next to each build: the panic screen prints VAs, and one kernel symbol table turns them into names. The kernel is an MH_FILESET, so llvm-nm prints per-bundle 'Symbols for' headings and a naive three-field parser reads the heading as a symbol.",
+  "A defect that only prints through kprintf is invisible here. IOFindBSDRoot waits ROOTDEVICETIMEOUT (120 s in a DEBUG build) after a 30 s service wait before it panics, so a run that looks frozen may still be inside a timeout; the panic screen appears two and a half minutes later.",
+  "Two boot attempts are recorded for this board, covering stages 1 through 5.",
 ]
 completion = [
   "Each claimed milestone has a reproducible command, a matching source and image revision, and an accessible result.",
 ]
 limits = [
-  "No text log has been captured from this board; the menu result rests on a screen observation.",
-  "Stages 3 to 7 have no checkpoint yet.",
+  "No text log has been captured from this board; every result rests on a screen observation.",
+  "Stage 6 has no checkpoint beyond the root-device panic, and stage 7 has none.",
 ]
 next_action = [
-  "Wire the firmware log export and capture the payload, loader and kernel checkpoints of the first full image.",
+  "Wire the firmware log export, which is what would turn the current one-message-per-run cycle into a trace of the whole boot.",
 ]
 evidence = [
   { kind = "source", reference = "board.toml", result = "Kernel arguments, panic screen setting and the serial console selection." },
