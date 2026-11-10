@@ -1,3 +1,4 @@
 # Board patch paths, one per line in application order.
 vermeer-kernel-stack-shift.patch
+vermeer-framebuffer-console.patch
 vermeer-mountroot-diagnostic.patch

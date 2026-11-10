@@ -1,0 +1,26 @@
+--- a/osfmk/kern/startup.c
++++ b/osfmk/kern/startup.c
+@@ -826,6 +826,23 @@
+ 	initialize_screen(NULL, kPEAcquireScreen);
+ 
+ 	/*
++	 * vermeer: keep the text console on the framebuffer.
++	 *
++	 * PE_create_console() selects kPEGraphicsMode, so gc_graphics_boot is TRUE when
++	 * the line above runs and gc_pause() sets disableConsoleOutput, which discards
++	 * every kprintf and IOLog for the rest of a graphics boot. That is Apple's
++	 * behaviour, and on a board with no serial port it leaves IOFindBSDRoot's
++	 * 30 s wait and ROOTDEVICETIMEOUT with no output at all.
++	 *
++	 * kPETextScreen is XNU's own switch for this: it calls gc_enable(TRUE), which
++	 * clears disableConsoleOutput and lets vcputc paint the scrolling log. Nothing
++	 * on ARM calls it, which is why the ARM ports show nothing. Selecting the video
++	 * console first keeps the switch off its console_is_serial() early-out.
++	 */
++	(void) switch_to_video_console();
++	initialize_screen(NULL, kPETextScreen);
++
++	/*
+ 	 *	Initialize the shared region module.
+ 	 */
+ 	vm_commpage_init();
