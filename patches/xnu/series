@@ -2,3 +2,4 @@
 vermeer-kernel-stack-shift.patch
 vermeer-framebuffer-console.patch
 vermeer-mountroot-diagnostic.patch
+vermeer-ufs-probe.patch
