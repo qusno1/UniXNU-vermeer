@@ -1,0 +1,22 @@
+--- a/bsd/kern/bsd_init.c
++++ b/bsd/kern/bsd_init.c
+@@ -1027,6 +1027,19 @@
+ 			break;
+ 		}
+ 		rootdevice[0] = '\0';
++		/*
++		 * vermeer: this board has no storage driver yet, so no root device can appear.
++		 * The retry loop below has no output this phone can show, which makes reaching
++		 * it indistinguishable from a hang somewhere in bsd_init. Bound the retry and
++		 * report the last error through the panic screen instead.
++		 */
++		{
++			static int vermeer_mountroot_failures;
++			if (++vermeer_mountroot_failures >= 8) {
++				panic("vermeer: vfs_mountroot failed %d times, errno %d",
++				    vermeer_mountroot_failures, err);
++			}
++		}
+ #if CONFIG_NETBOOT
+ 		if (netboot) {
+ 			PE_display_icon( 0, "noroot");  /* XXX a netboot-specific icon would be nicer */
