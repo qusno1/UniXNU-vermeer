@@ -5,3 +5,20 @@ git = "https://github.com/UniXNU/UniXNU-sm8550-common.git"
 # The revision reviewed against the SM8550 documentation, also pinned by the
 # reference device repository UniXNU-sheng for the same SoC and OS profile.
 commit = "a9f45dc60c035084b95463781538380f4c3606c9"
+
+# The UFS driver is a fork of the catalog's ShengUfs component, not that component
+# itself. ShengUfs hardcodes the name of the GPT partition that carries the root
+# image ("userdata"), which is right on sheng because there the root image was
+# flashed over the whole userdata partition, and wrong here because this board keeps
+# Android's userdata intact and keeps its root image in a separate partition.
+#
+# The fork makes that name a boot argument with "userdata" as the default, so its
+# behaviour is identical to upstream when the argument is absent, and adds nothing
+# else. It is pinned by commit: the driver owns DMA, SMMU and the command ring, so a
+# moving target there would make a failed boot impossible to attribute.
+[[source]]
+name = "ShengUfs"
+kind = "driver"
+git = "https://github.com/qusno1/ShengUfs.git"
+commit = "bf21739416d3c28c77e371d5565652b876efe2ce"
+

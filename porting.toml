@@ -218,46 +218,51 @@ evidence = [
 
 [[area]]
 id = "storage"
-status = "planned"
-components = []
-paths = ["package/*Ufs*", "scripts/*ufs*", "scripts/*storage*", "scripts/*userdata*"]
+status = "implemented"
+components = ["ShengUfs", "VerifiedRoot", "VirtioMmioBlock"]
+paths = ["package/*Ufs*", "scripts/*ufs*", "scripts/*storage*", "scripts/*userdata*", "feeds.toml", "configs/**"]
 inputs = [
   "UFS host at 0x1d84000 and PHY at 0x1d80000, both standard SM8550 positions confirmed in the stock device tree.",
   "userdata starts at LBA 2570304 with 4096-byte LBAs and ends at LBA 115933951, measured on the phone.",
   "UFS device descriptor on the phone: manufacturer_id 0x0198, number_of_luns 6; the host exposes gear and clkscale controls.",
   "Root volume: the OS and Cryptex1,SystemOS disk images of the target restore image, addressed through the OS profile [userdata] windows.",
   "The apps SMMU context and clocks are shared with the display and WiFi windows the UFS driver owns on request.",
+  "The root image lives in this board's own GPT partition (unixnu, sda30, start 927471616 x 512B, 67108864 sectors), holding a SHNGROOT v1 image; Android's userdata is untouched.",
+  "ShengUfs from https://github.com/qusno1/ShengUfs.git at bf21739 in feeds.toml, a fork of the catalog component.",
 ]
 configuration = [
-  "[userdata] first_lba = 2570304, last_lba = 115936099, lba_bytes = 4096.",
-  "[kernel] defconfig leaves CONFIG_XNU_NATIVE_UFS unset and [components] omits ShengUfs, so the current image has no storage driver and cannot mount a root.",
-  "Enabling it requires component:ShengUfs in [kernel] archives, CONFIG_XNU_NATIVE_UFS=y and native-ufs-root=1 with sheng-pmgr=2 in [payload] kernel_args.",
+  "[userdata] first_lba = 2570304, last_lba = 115936099, lba_bytes = 4096; these are the OS profile window bounds, not the root partition's.",
+  "[components] includes ShengUfs, [kernel] archives includes component:ShengUfs, and configs/vermeer_defconfig sets CONFIG_XNU_NATIVE_UFS=y.",
+  "[payload] kernel_args carries native-ufs-root=1 and vermeer-root-partition=unixnu.",
+  "feeds.toml pins the ShengUfs fork by commit, because that name is not in UniXNU's own feeds and the catalog points at the upstream repository.",
 ]
 procedure = [
   "Confirm the userdata extent on the device with fastboot getvar partition-size:userdata.",
-  "Enable ShengUfs and the matching defconfig and kernel arguments together.",
   "Verify register access, link state, command completion and known-block reads before attempting a root mount.",
 ]
 findings = [
-  "payload.py refuses native-ufs-root=1 unless the kernel links _sheng_pmgr_run and exactly one sheng-pmgr=2 is present, because the unchanged target AMFI panics with No PMGR otherwise.",
+  "payload.py refuses native-ufs-root=1 unless the kernel links _sheng_pmgr_run and exactly one sheng-pmgr=2 is present, because the unchanged target AMFI panics with No PMGR otherwise. That check is skipped when the device tree declares vmm-present, which this board does, so native-ufs-root=1 works here with no PMGR stand-in and no sheng-pmgr argument.",
   "The SoC patch series provides sheng-platform-power.patch, which calls sheng_pmgr_run from bsd_init under XNU_SHENG_PMGR.",
   "The stock GPT image carries no userdata extent: the flasher patches the last partition to NUM_DISK_SECTORS-6, so the usable size depends on the phone's part, not on the archive.",
+  "ShengUfs cannot be used unmodified on this board. Its RootLayout.h compiled in the partition name \"userdata\" because on sheng the root image was flashed over the whole userdata partition; this board keeps Android's userdata and puts the root image in its own partition, so the driver would have looked in the wrong place and reported a manifest mismatch. The fork makes the name a runtime value read from the boot argument vermeer-root-partition, with \"userdata\" as the default so upstream behaviour is unchanged, and adds the terminator check that the old fixed-size comparison got for free.",
+  "The first storage build is deliberately minimal: CONFIG_XNU_SOURCE_STORAGE and the CONFIG_XNU_OWNER_* family stay off, because each needs a signed policy bundle and a Data seed with matching UUIDs, and enabling them before the transport has moved a single block would make a failure impossible to attribute. The transport, the SMMU takeover and one READ(10) come first.",
 ]
 completion = [
   "Host: register, clock, link and SMMU facts match the board inventory.",
-  "Reads: capacity, GPT and known blocks are correct and the OS/SystemOS windows stay inside userdata.",
+  "Reads: capacity, GPT and known blocks are correct and the OS/SystemOS windows stay inside the root partition.",
   "Root: the configured volume mounts and launchd starts; writes survive a reboot inside the Data region.",
 ]
 limits = [
-  "No storage driver is selected, so no userdata access path exists in the current image.",
+  "No storage driver has run on the phone yet, so nothing about the transport is device-verified. The defconfig and component selection resolve and package.sh --check passes with 76 ordered patches.",
   "UFS negotiated gear and link speed have not been read from the device; only the descriptor (manufacturer_id 0x0198, 6 LUNs) and the gear/clkscale controls are known.",
-  "The root volume UUIDs and image digests of the iPhone17,1 image are unknown; the OS profile supplies the iPad17,3 values.",
+  "Whether the boot chain leaves the UFS power domains and link usable for XNU is unmeasured. If it does not, the QMP-PHY sequence has to be written, and the sheng driver's own header marks that part unqualified.",
 ]
 next_action = [
-  "Read the APFS volume UUIDs and image digests from the target restore image on macOS, then enable ShengUfs with the matching arguments.",
+  "Build with ShengUfs linked and read the boot log for the controller bring-up stages: cap/version, SMMU slot, NOP OUT, power mode, LUN ready.",
 ]
 evidence = [
-  { kind = "source", reference = "board.toml", result = "userdata geometry and the per-profile defconfig selection." },
+  { kind = "source", reference = "board.toml", result = "userdata geometry, the root-partition argument and the per-profile defconfig selection." },
+  { kind = "source", reference = "feeds.toml", result = "Pins https://github.com/qusno1/ShengUfs.git at bf21739416d3c28c77e371d5565652b876efe2ce, the fork that selects the root partition by name." },
 ]
 
 [[area]]

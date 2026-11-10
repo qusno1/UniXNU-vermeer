@@ -22,8 +22,14 @@ CONFIG_XNU_KERNEL_CHAINED_FIXUPS=y
 # are not in [components] and their archives are not in [kernel] archives, so the kernel must
 # not reference them. Re-enable the flag, both components and their archive entries together.
 # CONFIG_XNU_NATIVE_ADRENO is not set
-# Storage joins at the storage stage: the root volume lives on userdata, so a boot image built
-# without it reaches the loader but cannot mount a root. CONFIG_XNU_NATIVE_UFS=y additionally
-# needs component:ShengUfs in [kernel] archives and native-ufs-root=1 plus sheng-pmgr=2 in
-# [payload] kernel_args, which payload.py enforces against the linked _sheng_pmgr_run symbol.
-# CONFIG_XNU_NATIVE_UFS is not set
+# Storage is on: CONFIG_XNU_NATIVE_UFS links the ShengUfs archive from [kernel] archives, and
+# that driver is what publishes the IOMedia that IOFindBSDRoot waits for.
+#
+# Deliberately minimal for the first storage boot. sheng enables the whole owner-verified stack
+# (CONFIG_XNU_SOURCE_STORAGE, CONFIG_XNU_OWNER_ROOT_AUDIT, CONFIG_XNU_OWNER_ROOT_TRUST,
+# CONFIG_XNU_OWNER_BOOT_MANIFEST, CONFIG_XNU_OWNER_CACHE_MOUNT, CONFIG_XNU_OWNER_DATA_MOUNT,
+# CONFIG_XNU_OWNER_UNION_SYSTEMOS), and each of those needs a signed policy bundle plus a Data
+# seed with a matching UUID. Bringing them all up before the transport has ever moved a block
+# would make a failure impossible to attribute. The transport, the SMMU takeover and one
+# READ(10) come first; the owner and Data layers join once the block device is proven.
+CONFIG_XNU_NATIVE_UFS=y

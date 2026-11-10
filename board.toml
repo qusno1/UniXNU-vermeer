@@ -10,10 +10,15 @@ kit = "vermeer"
 example = false
 
 [components]
+# ShengUfs is the UFS driver, taken from this board's pin in feeds.toml: a fork that selects
+# the root partition by name instead of compiling in "userdata". It is what publishes the
+# IOMedia that IOFindBSDRoot waits for. Without it the kernel reaches bsd_init, brings up APFS
+# and then panics with "Failed to mount root device" because nothing publishes a block device.
+#
 # GPU support is deferred to the gpu stage: Adreno740/AdrenoMetal need the board's ZAP firmware,
 # GMU votes and GPU SMMU inputs, none of which are imported yet. The defconfig keeps
 # CONFIG_XNU_NATIVE_ADRENO off so the kernel does not link an archive this tree cannot build.
-include = ["ArmDTPlatform", "ArmCpu", "XnuPrelink", "DarwinBoot", "GopFramebuffer", "AppleKeyStoreState"]
+include = ["ArmDTPlatform", "ArmCpu", "XnuPrelink", "DarwinBoot", "GopFramebuffer", "AppleKeyStoreState", "ShengUfs"]
 
 # The target image is the one the selected OS profile qualifies: iPadOS 27.0.1 build
 # 24A446 for iPad17,3 (J820AP), the same restore image and product the reference SM8550
@@ -28,7 +33,7 @@ include = ["ArmDTPlatform", "ArmCpu", "XnuPrelink", "DarwinBoot", "GopFramebuffe
 
 [kernel]
 defconfig = "vermeer_defconfig"
-archives = ["build-corecrypto-14.py", "build-corecrypto-14.py --namespace", "component:ArmDTPlatform", "component:ArmCpu", "build-libpthread-kernel.py", "component:AppleKeyStoreState", "build-fileset-release-reference.py --tree . --lto"]
+archives = ["build-corecrypto-14.py", "build-corecrypto-14.py --namespace", "component:ArmDTPlatform", "component:ArmCpu", "build-libpthread-kernel.py", "component:AppleKeyStoreState", "component:ShengUfs", "build-fileset-release-reference.py --tree . --lto"]
 # Arrays replace the profile lists; keep arch, soc, os and device in order.
 config_fragments = ["arch:configs/common.config", "soc:configs/sm8550.config", "os:configs/ipados.config"]
 patch_series = ["arch:patches/xnu/series", "soc:patches/xnu-12377/series", "os:patches/xnu/series", "device:patches/xnu/series"]
@@ -160,7 +165,7 @@ panic_screen = true
 # kt_fixed_zones=120 sizes the fixed kalloc zones (kalloc.c:463 TUNABLE). -no_slto_panic
 # keeps the SLTO check from panicking (startup.c:575). Both are memory/startup switches that
 # do not depend on board hardware, and the reference board passes them for this profile.
-kernel_args = ["-v", "serial=3", "debug=0x14e", "use_contiguous_hint=0", "kt_fixed_zones=120", "-no_slto_panic"]
+kernel_args = ["-v", "serial=3", "debug=0x14e", "use_contiguous_hint=0", "kt_fixed_zones=120", "-no_slto_panic", "native-ufs-root=1", "vermeer-root-partition=unixnu"]
 
 [payload.adt]
 # Required: the ADT generator reads this key of [payload.adt], not the profile's [ipsw] table.
