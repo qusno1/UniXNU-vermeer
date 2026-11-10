@@ -151,6 +151,7 @@ findings = [
   "Without native-smp-secondary.patch the secondary cores decode their index from Affinity0, which is empty on SM8550.",
   "configs/vermeer_defconfig also carries the kernel switches that this profile needs and the shared fragments do not supply: CONFIG_XNU_CRYPTO_BOOTSTRAP=\"source\" over the profile's \"prelinked\", because prelinked leaves OSKext.cpp calling source_corecrypto14_original and source_corecrypto14_start_once while prng_random.o no longer defines them, and the first pass links no crypto archive. CONFIG_XNU_NATIVE_ADRENO and CONFIG_XNU_NATIVE_UFS stay unset until their board inputs exist.",
   "kernel_args carries three switches beyond -v/serial/debug that the reference board also passes: use_contiguous_hint=0, kt_fixed_zones=120 and -no_slto_panic. The first is required because 4 KiB kernel pages plus native-4k-block-split.patch make the pmap hint asserts unsatisfiable; the other two are kernel-internal memory and startup tunables with no board dependency. The command line is 79 bytes, well inside DarwinBoot's 1000-byte limit.",
+  "[adt.defaults.u32] vmm-present = 1 tells AMFI that no ApplePMGRNub will appear. The firmware runs with VERMEER_VENDOR_HW = 0 and publishes no vendor PMIC/RPMh stack, so without the flag AMFI waits for a PMGR that cannot exist and panics with \"AMFI: No PMGR\" at ConfigurationSettings.cpp:392.",
 ]
 completion = [
   "Every enabled CPU reaches its entry checkpoint.",
