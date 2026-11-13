@@ -19,11 +19,14 @@
 // declarations below and emits zero-valued defaults for the components that are
 // not built in, so the declarations have to keep their exact shape.
 //
+// This is a C translation unit: build-sheng-source-storage.py compiles it with the
+// kernel's C recipe (startup.o.json), which runs clang as C, so the file must not
+// use C++ constructs. The extern "C" block it used to carry was a hard error
+// ("expected identifier or '('") and never reached a link.
+//
 // Nothing here writes to storage.
 
 #include <stdint.h>
-
-extern "C" {
 
 // The contract the minimal runtime keeps. The declarations carry weak_import so
 // the build script generates hidden defaults for them when this page is absent,
@@ -43,6 +46,4 @@ void
 boot_log_tick(unsigned now)
 {
 	(void)now;
-}
-
 }
