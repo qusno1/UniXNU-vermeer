@@ -225,7 +225,7 @@ evidence = [
 [[area]]
 id = "storage"
 status = "implemented"
-components = ["ShengUfs", "VerifiedRoot", "VirtioMmioBlock"]
+components = ["ShengUfs", "RamBlock", "VerifiedRoot", "VirtioMmioBlock"]
 paths = ["package/**", "drivers/ShengUfs/**", "scripts/*ufs*", "scripts/*storage*", "scripts/*userdata*", "scripts/policies/**", "feeds.toml", "configs/**"]
 inputs = [
   "UFS host at 0x1d84000 and PHY at 0x1d80000, both standard SM8550 positions confirmed in the stock device tree.",
@@ -238,7 +238,7 @@ inputs = [
 ]
 configuration = [
   "[userdata] first_lba = 2570304, last_lba = 115936099, lba_bytes = 4096; these are the OS profile window bounds, not the root partition's.",
-  "[components] includes ShengUfs, [kernel] archives includes component:ShengUfs, and configs/vermeer_defconfig sets CONFIG_XNU_NATIVE_UFS=y.",
+  "[components] includes ShengUfs and RamBlock, [kernel] archives includes component:ShengUfs and component:RamBlock, and configs/vermeer_defconfig sets CONFIG_XNU_NATIVE_UFS=y.",
   "[payload] kernel_args carries native-ufs-root=1 and vermeer-root-partition=unixnu.",
   "feeds.toml pins the ShengUfs fork by commit, because that name is not in UniXNU's own feeds and the catalog points at the upstream repository.",
 ]
@@ -264,6 +264,7 @@ findings = [
   "After the path fix the first pass links further and fails where the baseline design says it must: the kernel make exits 2 at mach.development.bcm2837.unstripped.noctf with _corecrypto_kext_start (prng_random.o, the XNU_SOURCE_CORECRYPTO14 namespaced corecrypto built later by archive-01/02) and _native_source_storage_start (bsd_init.o, our deferred adapter) undefined, and the run continued into the archive and component steps afterwards, so that failure is the design and not a stop.",
   "The real stop moved into the component build: NativeUfs.cpp compiles with one error among twelve warnings and the run dies there, before the second kernel pass that would link libShengSourceStorage.a and resolve the deferred adapter. The step log lost the error itself - the script raised SystemExit(result.stdout[-6000:]) and the printed tail carried only the last two [-Wsign-conversion] warnings - so the override now prints the exact compile command and the complete compiler output on failure. The tail also showed those warnings un-promoted while compile_command appends -Werror after the kernel's own -W flags are stripped, which means the error is emitted earlier in the unit and the visible warnings are not the whole story.",
   "The logs-27 artifact that package.yml now uploads on failure finally carried the whole component log, and the error was in the fork's own code: 'NativeUfs.cpp:2563:7: error: reference to 'gRootPartitionName' is ambiguous'. NativeUfs.cpp includes RootLayout.h inside the parser's anonymous namespace (the namespace block above the include), so the extern declaration there names (anonymous namespace)::gRootPartitionName; the fork's definition at global scope created a second variable and the first unqualified use in startRoot was ambiguous between them. The fix defines the name inside an unnamed-namespace brace pair at the same spot - every anonymous-namespace block in the file is the same unnamed namespace, so that is the entity the header declares - and the fork moves to 72d022f. The twelve [-Wimplicit-int-conversion] and [-Wsign-conversion] warnings are upstream code and did not block: the summary counted them as warnings beside the one error, with -Werror in the command, so they stay as they are.",
+  "With the ambiguity fixed the component advanced past NativeUfs.cpp and stopped on the next member of the source-storage archive: 'clang: error: no such file or directory: .../tree/drivers/RamBlock/NativeRamBlock.cpp'. build-sheng-source-storage.py compiles the main repository's RamBlock driver unconditionally - it is the Data-disk class SourceStorage registers third - but tree.py links tree/drivers/<name> only for components named in [components] include, and RamBlock was not selected. sheng's board.toml for the same profile selects RamBlock and keeps component:RamBlock in [kernel.archives], which the plan also requires for every selected component. Both are added here; at link time the standalone libNativeRamBlock.a members are not pulled because the .late.o in libShengSourceStorage.a (mod_init stripped, sub_I globalized) already defines the class and the deferred registration runs it.",
 ]
 completion = [
   "Host: register, clock, link and SMMU facts match the board inventory.",

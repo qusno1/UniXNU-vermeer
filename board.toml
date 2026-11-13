@@ -18,7 +18,17 @@ example = false
 # GPU support is deferred to the gpu stage: Adreno740/AdrenoMetal need the board's ZAP firmware,
 # GMU votes and GPU SMMU inputs, none of which are imported yet. The defconfig keeps
 # CONFIG_XNU_NATIVE_ADRENO off so the kernel does not link an archive this tree cannot build.
-include = ["ArmDTPlatform", "ArmCpu", "XnuPrelink", "DarwinBoot", "GopFramebuffer", "AppleKeyStoreState", "ShengUfs"]
+# RamBlock rides along because the arm64e source-storage runtime compiles
+# drivers/RamBlock/NativeRamBlock.cpp into its deferred archive unconditionally: that is the
+# Data-disk class SourceStorage registers third, behind the adapter and the UFS service. Its
+# source is only reachable in the tree when the component is selected, because tree.py links
+# tree/drivers/<name> for selected components alone; with RamBlock missing the build stopped
+# at "clang: error: no such file or directory: .../tree/drivers/RamBlock/NativeRamBlock.cpp",
+# right after the NativeUfs ambiguity was fixed. The standalone archive entry the plan
+# requires is in [kernel.archives]; at link time its members are not pulled, because the
+# .late.o inside libShengSourceStorage.a (mod_init stripped, sub_I globalized) already
+# defines the class and the deferred registration runs it from SourceStorage.
+include = ["ArmDTPlatform", "ArmCpu", "XnuPrelink", "DarwinBoot", "GopFramebuffer", "AppleKeyStoreState", "ShengUfs", "RamBlock"]
 
 # The target image is the one the selected OS profile qualifies: iPadOS 27.0.1 build
 # 24A446 for iPad17,3 (J820AP), the same restore image and product the reference SM8550
@@ -33,7 +43,7 @@ include = ["ArmDTPlatform", "ArmCpu", "XnuPrelink", "DarwinBoot", "GopFramebuffe
 
 [kernel]
 defconfig = "vermeer_defconfig"
-archives = ["build-corecrypto-14.py", "build-corecrypto-14.py --namespace", "component:ArmDTPlatform", "component:ArmCpu", "build-libpthread-kernel.py", "component:AppleKeyStoreState", "component:ShengUfs", "build-fileset-release-reference.py --tree . --lto"]
+archives = ["build-corecrypto-14.py", "build-corecrypto-14.py --namespace", "component:ArmDTPlatform", "component:ArmCpu", "build-libpthread-kernel.py", "component:AppleKeyStoreState", "component:ShengUfs", "component:RamBlock", "build-fileset-release-reference.py --tree . --lto"]
 # Arrays replace the profile lists; keep arch, soc, os and device in order.
 config_fragments = ["arch:configs/common.config", "soc:configs/sm8550.config", "os:configs/ipados.config"]
 patch_series = ["arch:patches/xnu/series", "soc:patches/xnu-12377/series", "os:patches/xnu/series", "device:patches/xnu/series"]
