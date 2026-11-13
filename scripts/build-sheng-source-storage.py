@@ -75,7 +75,7 @@ def main():
     # so without this the device resolved to the tree and the board package was searched for in
     # the wrong place. unixnu's kernel step exports UNIXNU_DEVICE for exactly this: the checkout
     # that owns board.toml and package/.
-    device = (args.device or os.environ.get('UNIXNU_DEVICE') or tree).resolve()
+    device = Path(args.device or os.environ.get('UNIXNU_DEVICE') or tree).resolve()
     storage = (args.storage_source or tree / 'refer/IOStorageFamily').resolve()
     # The OS profile names the root images ([root]); kernel.py passes them in the environment.
     build_id = os.environ.get('UNIXNU_IPSW_BUILD')
@@ -112,22 +112,32 @@ def main():
             package_dirs.append(device / 'kits' / name)
     # The kit name above is the board's own when board.toml is readable. When it is not, every
     # kits/<name> link the tree actually has is still a candidate, so a resolved build does not
-    # depend on reading the board file from inside the assembler.
+    # depend on reading the board file from inside the assembler. A link the host cannot follow
+    # (a tree assembled on another machine) is skipped rather than fatal.
+    def usable(path):
+        try:
+            return path.is_dir()
+        except OSError:
+            return False
+
     for parent in (tree / 'kits', device / 'kits'):
-        if parent.is_dir():
+        if usable(parent):
             try:
                 entries = sorted(parent.iterdir())
             except OSError:
                 entries = []
             for entry in entries:
-                if entry.is_dir() and entry not in package_dirs:
+                if entry not in package_dirs and usable(entry):
                     package_dirs.append(entry)
 
     def device_source(relative, *extra):
         for directory in list(extra) + package_dirs + [device, tree]:
             candidate = directory / relative
-            if candidate.is_file():
-                return candidate
+            try:
+                if candidate.is_file():
+                    return candidate
+            except OSError:
+                continue
         parser.error(f'{relative} not found under the device or build tree')
     if os.environ.get('UNIXNU_XNU_ARCH', 'arm64e') != 'arm64e':
         parser.error('This adapter requires an arm64e iPadOS profile')
