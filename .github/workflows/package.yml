@@ -74,6 +74,16 @@ jobs:
           UNIXNU_UNIQUE_CHIP_ID: ${{ secrets.UNIXNU_UNIQUE_CHIP_ID }}
           GITHUB_TOKEN: ${{ github.token }}
         run: scripts/package.sh --os "${{ inputs.os }}" --uefi ../uefi-vermeer
+      - name: failure logs
+        if: failure()
+        uses: actions/upload-artifact@v4
+        with:
+          name: logs-${{ inputs.os }}
+          retention-days: 7
+          if-no-files-found: ignore
+          path: |
+            UniXNU/out/**/logs/*.log
+            UniXNU/out/**/build/sheng-source-storage/*
       - name: images
         uses: actions/upload-artifact@v4
         with:
