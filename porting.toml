@@ -234,7 +234,7 @@ inputs = [
   "Root volume: the OS and Cryptex1,SystemOS disk images of the target restore image, addressed through the OS profile [userdata] windows.",
   "The apps SMMU context and clocks are shared with the display and WiFi windows the UFS driver owns on request.",
   "The root image lives in this board's own GPT partition (unixnu, sda30, start 927471616 x 512B, 67108864 sectors), holding a SHNGROOT v1 image; Android's userdata is untouched.",
-  "ShengUfs from https://github.com/qusno1/ShengUfs.git at bf21739 in feeds.toml, a fork of the catalog component.",
+  "ShengUfs from https://github.com/qusno1/ShengUfs.git at 72d022f in feeds.toml, a fork of the catalog component.",
 ]
 configuration = [
   "[userdata] first_lba = 2570304, last_lba = 115936099, lba_bytes = 4096; these are the OS profile window bounds, not the root partition's.",
@@ -263,6 +263,7 @@ findings = [
   "package/BootLog.c could never have compiled: it wrapped its declarations in an extern \"C\" block, but the build compiles that file with the kernel's C recipe (startup.o.json), which runs clang as C, so the block is rejected with 'expected identifier or ('. sheng's own .c files carry no extern \"C\" for exactly that reason. The block is removed and the declarations keep the weak_import shape that weak_defaults() scans for; the corrected file compiles clean under -Wall -Wextra -Werror as C and exports boot_log_tick and the four state words.",
   "After the path fix the first pass links further and fails where the baseline design says it must: the kernel make exits 2 at mach.development.bcm2837.unstripped.noctf with _corecrypto_kext_start (prng_random.o, the XNU_SOURCE_CORECRYPTO14 namespaced corecrypto built later by archive-01/02) and _native_source_storage_start (bsd_init.o, our deferred adapter) undefined, and the run continued into the archive and component steps afterwards, so that failure is the design and not a stop.",
   "The real stop moved into the component build: NativeUfs.cpp compiles with one error among twelve warnings and the run dies there, before the second kernel pass that would link libShengSourceStorage.a and resolve the deferred adapter. The step log lost the error itself - the script raised SystemExit(result.stdout[-6000:]) and the printed tail carried only the last two [-Wsign-conversion] warnings - so the override now prints the exact compile command and the complete compiler output on failure. The tail also showed those warnings un-promoted while compile_command appends -Werror after the kernel's own -W flags are stripped, which means the error is emitted earlier in the unit and the visible warnings are not the whole story.",
+  "The logs-27 artifact that package.yml now uploads on failure finally carried the whole component log, and the error was in the fork's own code: 'NativeUfs.cpp:2563:7: error: reference to 'gRootPartitionName' is ambiguous'. NativeUfs.cpp includes RootLayout.h inside the parser's anonymous namespace (the namespace block above the include), so the extern declaration there names (anonymous namespace)::gRootPartitionName; the fork's definition at global scope created a second variable and the first unqualified use in startRoot was ambiguous between them. The fix defines the name inside an unnamed-namespace brace pair at the same spot - every anonymous-namespace block in the file is the same unnamed namespace, so that is the entity the header declares - and the fork moves to 72d022f. The twelve [-Wimplicit-int-conversion] and [-Wsign-conversion] warnings are upstream code and did not block: the summary counted them as warnings beside the one error, with -Werror in the command, so they stay as they are.",
 ]
 completion = [
   "Host: register, clock, link and SMMU facts match the board inventory.",
@@ -279,7 +280,7 @@ next_action = [
 ]
 evidence = [
   { kind = "source", reference = "board.toml", result = "userdata geometry, the root-partition argument and the per-profile defconfig selection." },
-  { kind = "source", reference = "feeds.toml", result = "Pins https://github.com/qusno1/ShengUfs.git at bf21739416d3c28c77e371d5565652b876efe2ce, the fork that selects the root partition by name." },
+  { kind = "source", reference = "feeds.toml", result = "Pins https://github.com/qusno1/ShengUfs.git at 72d022f7a4952c73b683222c0d40e86cdf8afd04, the fork that selects the root partition by name, with the definition in the parser's unnamed namespace." },
 ]
 
 [[area]]

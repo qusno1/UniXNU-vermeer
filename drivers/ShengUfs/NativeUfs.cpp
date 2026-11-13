@@ -49,7 +49,17 @@ static void rootDiagnosticFailure (const char *reason);
 // root image was flashed over the whole userdata partition; this board keeps Android's
 // userdata and stores the root image in its own GPT partition, so the name is selected by
 // the boot argument vermeer-root-partition at start time. The default keeps sheng working.
+//
+// The definition lives in the unnamed namespace, not at global scope, because
+// NativeUfs.cpp includes RootLayout.h inside the parser's anonymous namespace, so the
+// extern declaration there names (anonymous namespace)::gRootPartitionName. A definition
+// at global scope would create a second variable and the first use would report
+// "reference to 'gRootPartitionName' is ambiguous". Every anonymous-namespace block in
+// this file is the same unnamed namespace, so one brace pair here defines the entity the
+// header declares and both startRoot and findRootLayout see one variable.
+namespace {
 const char *gRootPartitionName = "userdata";
+}
 
 extern "C" {
 // Optional passive observer; absent in ordinary builds. It may run while a
