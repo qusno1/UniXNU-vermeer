@@ -278,11 +278,12 @@ limits = [
   "Whether the boot chain leaves the UFS power domains and link usable for XNU is unmeasured. If it does not, the QMP-PHY sequence has to be written, and the sheng driver's own header marks that part unqualified.",
 ]
 next_action = [
-  "Build with ShengUfs linked and read the boot log for the controller bring-up stages: cap/version, SMMU slot, NOP OUT, power mode, LUN ready.",
+  "Boot the v59 image with fastboot boot and read the boot log for the controller bring-up stages: the fork's 'root partition is unixnu' line, then cap/version, SMMU slot, NOP OUT, power mode, LUN ready.",
 ]
 evidence = [
   { kind = "source", reference = "board.toml", result = "userdata geometry, the root-partition argument and the per-profile defconfig selection." },
   { kind = "source", reference = "feeds.toml", result = "Pins https://github.com/qusno1/ShengUfs.git at 72d022f7a4952c73b683222c0d40e86cdf8afd04, the fork that selects the root partition by name, with the definition in the parser's unnamed namespace." },
+  { kind = "host", reference = "https://github.com/qusno1/UniXNU-vermeer/actions/runs/43532882511", command = "gh run download 43532882511 -n images-27", revision = "4800b404c79cd21f17074f567d82faea932f047f", result = "First package run with the storage runtime compiled: boot.img sha256 0cb19c3f3b862d44f3529a8a38e33d0c772e0f4595cc7d97d72d41b2ca6b1e92, kernel.macho 95797248 bytes (65536 over v58), strings NativeUfs 121, SourceStorage 17, VROOTB01 1, vermeer-root-partition 1." },
 ]
 
 [[area]]
