@@ -148,4 +148,5 @@ jobs:
             UniXNU/out/vermeer/*/*/boot/boot.img
             UniXNU/out/vermeer/*/*/payload/payload.img
             UniXNU/out/vermeer/*/*/kernel/kernel.macho
+            UniXNU/out/vermeer/*/*/kernel/kernel.macho.json
             UniXNU/out/vermeer/*/*/package.manifest.json
