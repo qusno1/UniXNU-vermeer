@@ -75,12 +75,12 @@ jobs:
       - name: trust modules
         working-directory: device
         run: |
-          python3 ../UniXNU/unixnu fetch -D . --os "${{ inputs.os }}" | tee "$RUNNER_TEMP/fetch.txt"
-          python3 ../UniXNU/unixnu ipsw fetch --os "${{ inputs.os }}" -D . \
-            StaticTrustCache "Cryptex1,SystemTrustCache" "Cryptex1,AppTrustCache" \
-            | tee "$RUNNER_TEMP/trust-paths.txt"
-          grep -v '^== ' "$RUNNER_TEMP/trust-paths.txt" > "$RUNNER_TEMP/trust-modules.txt"
-          [ "$(wc -l < "$RUNNER_TEMP/trust-modules.txt")" = 3 ]
+          python3 ../UniXNU/unixnu fetch -D . --os "${{ inputs.os }}" > "$RUNNER_TEMP/fetch.txt" 2>&1 \
+            || { tail -20 "$RUNNER_TEMP/fetch.txt"; exit 1; }
+          static=$(python3 ../UniXNU/unixnu ipsw fetch --os "${{ inputs.os }}" -D . StaticTrustCache | tail -n 1)
+          systemos=$(python3 ../UniXNU/unixnu ipsw fetch --os "${{ inputs.os }}" -D . "Cryptex1,SystemTrustCache" | tail -n 1)
+          app=$(python3 ../UniXNU/unixnu ipsw fetch --os "${{ inputs.os }}" -D . "Cryptex1,AppTrustCache" | tail -n 1)
+          printf '%s\n%s\n%s\n' "$static" "$systemos" "$app" > "$RUNNER_TEMP/trust-modules.txt"
       - name: trust bundle
         working-directory: device
         run: |
