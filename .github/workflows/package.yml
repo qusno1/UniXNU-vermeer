@@ -14,6 +14,10 @@ on:
         type: choice
         options: ["17", "26", "27"]
         default: "17"
+      root_image:
+        description: "Also rebuild the root image (skip when the flashed unixnu image is still current)"
+        type: boolean
+        default: true
 
 permissions:
   contents: read
@@ -90,9 +94,11 @@ jobs:
         run: scripts/package.sh --os "${{ inputs.os }}" --uefi ../uefi-vermeer \
           --trust-cache "$RUNNER_TEMP/apple-trust.bundle"
       - name: root tables
+        if: inputs.root_image
         working-directory: device
         run: python3 scripts/build-vermeer-root-tables.py --os "${{ inputs.os }}"
       - name: root image
+        if: inputs.root_image
         working-directory: device
         env:
           UNIXNU_UNIQUE_CHIP_ID: ${{ secrets.UNIXNU_UNIQUE_CHIP_ID }}
@@ -105,11 +111,13 @@ jobs:
           [ ${#objects[@]} -gt 0 ] || { echo 'no root tables found'; exit 1; }
           python3 ../UniXNU/unixnu userdata --os "${{ inputs.os }}" --uefi ../uefi-vermeer "${objects[@]}"
       - name: sparse root image
+        if: inputs.root_image
         working-directory: device
         run: |
           image=$(ls ../UniXNU/out/vermeer/*/*/userdata/userdata-root.img)
           python3 scripts/make-sparse-root-image.py "$image" "${image%.img}-sparse.img"
       - name: root image artifact
+        if: inputs.root_image
         uses: actions/upload-artifact@v4
         with:
           name: userdata-${{ inputs.os }}
