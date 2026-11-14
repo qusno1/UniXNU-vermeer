@@ -57,7 +57,7 @@ def main():
     entry_size, entry_at = image.entries['com.apple.kernel']
     kernel = Image(data, entry_at)
     starts = sorted(kernel.function_starts())
-    mapped = dict(kernel.mapped())
+    mapped = kernel.mapped()
     print(f'kernelcache: {cache} ({len(starts)} original functions, base {kernel.base:#x})')
 
     def read(va, length):
