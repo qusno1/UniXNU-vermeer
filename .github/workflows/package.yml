@@ -82,10 +82,12 @@ jobs:
         env:
           UNIXNU_UNIQUE_CHIP_ID: ${{ secrets.UNIXNU_UNIQUE_CHIP_ID }}
         run: |
+          shopt -s nullglob
           objects=()
-          for table in ../UniXNU/out/vermeer/*/*/work/vermeer-root/*.vroot; do
+          for table in ../UniXNU/out/vermeer/*/*/vermeer-root/*.vroot; do
             objects+=(--object "$(basename "$table")=$table")
           done
+          [ ${#objects[@]} -gt 0 ] || { echo 'no root tables found'; exit 1; }
           python3 ../UniXNU/unixnu userdata --os "${{ inputs.os }}" --uefi ../uefi-vermeer "${objects[@]}"
       - name: root image artifact
         uses: actions/upload-artifact@v4
@@ -94,8 +96,8 @@ jobs:
           retention-days: 7
           if-no-files-found: error
           path: |
-            UniXNU/out/vermeer/*/*/work/userdata/userdata-root.img
-            UniXNU/out/vermeer/*/*/work/userdata/userdata-root.json
+            UniXNU/out/vermeer/*/*/userdata/userdata-root.img
+            UniXNU/out/vermeer/*/*/userdata/userdata-root.json
       - name: failure logs
         if: failure()
         uses: actions/upload-artifact@v4
