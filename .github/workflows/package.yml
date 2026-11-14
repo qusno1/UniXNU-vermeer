@@ -95,6 +95,9 @@ jobs:
         run: |
           scripts/package.sh --os "${{ inputs.os }}" --uefi ../uefi-vermeer \
             --trust-cache "$RUNNER_TEMP/apple-trust.bundle"
+      - name: stub report
+        working-directory: device
+        run: python3 scripts/identify-stubbed-functions.py --os "${{ inputs.os }}"
       - name: root tables
         if: inputs.root_image
         working-directory: device
@@ -150,5 +153,6 @@ jobs:
             UniXNU/out/vermeer/*/*/kernel/kernel.macho
             UniXNU/out/vermeer/*/*/kernel/kernel.json
             UniXNU/out/vermeer/*/*/kernel/kernel.map.json
+            UniXNU/out/vermeer/*/*/vermeer-root/stubbed-functions-report.txt
             UniXNU/out/vermeer/*/*/kernel/kernel.macho.json
             UniXNU/out/vermeer/*/*/package.manifest.json
