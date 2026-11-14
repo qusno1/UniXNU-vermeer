@@ -74,6 +74,28 @@ jobs:
           UNIXNU_UNIQUE_CHIP_ID: ${{ secrets.UNIXNU_UNIQUE_CHIP_ID }}
           GITHUB_TOKEN: ${{ github.token }}
         run: scripts/package.sh --os "${{ inputs.os }}" --uefi ../uefi-vermeer
+      - name: root tables
+        working-directory: device
+        run: python3 scripts/build-vermeer-root-tables.py --os "${{ inputs.os }}"
+      - name: root image
+        working-directory: device
+        env:
+          UNIXNU_UNIQUE_CHIP_ID: ${{ secrets.UNIXNU_UNIQUE_CHIP_ID }}
+        run: |
+          objects=()
+          for table in ../UniXNU/out/vermeer/*/*/work/vermeer-root/*.vroot; do
+            objects+=(--object "$(basename "$table")=$table")
+          done
+          python3 ../UniXNU/unixnu userdata --os "${{ inputs.os }}" --uefi ../uefi-vermeer "${objects[@]}"
+      - name: root image artifact
+        uses: actions/upload-artifact@v4
+        with:
+          name: userdata-${{ inputs.os }}
+          retention-days: 7
+          if-no-files-found: error
+          path: |
+            UniXNU/out/vermeer/*/*/work/userdata/userdata-root.img
+            UniXNU/out/vermeer/*/*/work/userdata/userdata-root.json
       - name: failure logs
         if: failure()
         uses: actions/upload-artifact@v4
