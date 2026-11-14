@@ -75,6 +75,7 @@ jobs:
       - name: trust modules
         working-directory: device
         run: |
+          python3 ../UniXNU/unixnu fetch -D . --os "${{ inputs.os }}" | tee "$RUNNER_TEMP/fetch.txt"
           python3 ../UniXNU/unixnu ipsw fetch --os "${{ inputs.os }}" -D . \
             StaticTrustCache "Cryptex1,SystemTrustCache" "Cryptex1,AppTrustCache" \
             | tee "$RUNNER_TEMP/trust-paths.txt"
