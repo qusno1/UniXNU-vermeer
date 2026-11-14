@@ -3,3 +3,4 @@ vermeer-kernel-stack-shift.patch
 vermeer-framebuffer-console.patch
 vermeer-mountroot-diagnostic.patch
 vermeer-source-storage.patch
+vermeer-jetsam-thread-wake-guard.patch

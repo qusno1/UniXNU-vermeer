@@ -1,0 +1,33 @@
+--- a/bsd/kern/kern_memorystatus.c
++++ b/bsd/kern/kern_memorystatus.c
+@@ -4075,12 +4075,30 @@
+ void
+ memorystatus_thread_wake()
+ {
++	/*
++	 * vermeer: the jetsam_threads array is allocated inside memorystatus_init,
++	 * while active_jetsam_threads already reads its compile-time 1 and
++	 * VM_CHECK_MEMORYSTATUS reaches this function from allocations that run
++	 * earlier in the same function. This board's first mounted-root boot took
++	 * the critical page-shortage branch inside one of those allocations,
++	 * loaded the still NULL jetsam_threads pointer and faulted on
++	 * jetsam_threads[0].thread at far 0x8 (memorystatus_init+0x598 ->
++	 * kalloc_large -> vm_page_grab_slow -> memorystatus_update_available_page_count).
++	 * Nothing can be woken before memorystatus_init has created the threads,
++	 * so skip the wake while the array does not exist or a thread is unset.
++	 */
++	if (jetsam_threads == NULL) {
++		return;
++	}
+ 	int thr_id = 0;
+ 	int active_thr = atomic_load(&active_jetsam_threads);
+
+ 	/* Wakeup all the jetsam threads */
+ 	for (thr_id = 0; thr_id < active_thr; thr_id++) {
+ 		jetsam_state_t jetsam_thread = &jetsam_threads[thr_id];
++		if (jetsam_thread->thread == NULL) {
++			continue;
++		}
+ 		sched_cond_signal(&(jetsam_thread->jt_wakeup_cond), jetsam_thread->thread);
+ 	}
+ }
