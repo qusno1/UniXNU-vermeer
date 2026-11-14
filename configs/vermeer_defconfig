@@ -49,3 +49,14 @@ CONFIG_XNU_KERNEL_CHAINED_FIXUPS=y
 CONFIG_XNU_SOURCE_STORAGE=y
 CONFIG_XNU_SOURCE_STORAGE_TABLES="userdata"
 CONFIG_XNU_EXTRA_LD_ARCHIVES="-Wl,-force_load,{tree}/build/sheng-source-storage/libShengSourceStorage.a"
+# The mount gate needs the owner verdict. bsd_init's FSIOC_KERNEL_ROOTAUTH seal check fails on
+# a source-built root, and offline-owner-root-binding-audit.patch tolerates that failure only
+# through the owner verdict: the root mounted read-only AND native_verified_block_root_authorized()
+# on the mounted device (SourceRootBinding.cpp's IOMedia walk into the verified UFS window). The
+# third boot proved everything before it - transport, GPT, manifest, policy authentication, window
+# verification, publication and the mount itself - and then panicked at that gate. sheng-27 sets
+# both flags for this profile; the baseline's own validation accepts them with XNU_SOURCE_STORAGE=y.
+# The Data-volume, cache-mount and SystemOS-union members of the family stay off: each needs a
+# Data seed this board does not carry yet.
+CONFIG_XNU_OWNER_ROOT_AUDIT=y
+CONFIG_XNU_OWNER_ROOT_TRUST=y
