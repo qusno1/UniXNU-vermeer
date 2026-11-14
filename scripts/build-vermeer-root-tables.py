@@ -59,10 +59,14 @@ def main():
     # bytes that `unixnu userdata` writes into the windows.
     cli = cli_parser().parse_args(['build', 'userdata', '--os', profile, '-D', str(ROOT)])
     ctx = Context(cli)
+    # The CLI resolves "--os 27" to the profile's directory name; the policy directories are
+    # named the same way (scripts/policies/ipados-27.0.1-24A446), so take the resolved name
+    # from the work path instead of the raw argument.
+    resolved = ctx.work.parts[-2]
     windows = ctx.board.get('userdata', {}).get('windows', [])
     if not windows:
         raise SystemExit('the merged board defines no [userdata] windows')
-    policies = ROOT / 'scripts' / 'policies' / profile
+    policies = ROOT / 'scripts' / 'policies' / resolved
     out = args.out or (ctx.work / 'vermeer-root')
     out.mkdir(parents=True, exist_ok=True)
     source = Ipsw(ctx)
