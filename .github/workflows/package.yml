@@ -68,12 +68,27 @@ jobs:
             echo 'Set the repository secret UNIXNU_UNIQUE_CHIP_ID: the platform seed of the device, 8 hex digits.' >&2
             exit 1
           fi
+      - name: trust modules
+        working-directory: device
+        run: |
+          python3 ../UniXNU/unixnu ipsw fetch --os "${{ inputs.os }}" -D . \
+            StaticTrustCache "Cryptex1,SystemTrustCache" "Cryptex1,AppTrustCache" \
+            | tee "$RUNNER_TEMP/trust-paths.txt"
+          grep -v '^== ' "$RUNNER_TEMP/trust-paths.txt" > "$RUNNER_TEMP/trust-modules.txt"
+          [ "$(wc -l < "$RUNNER_TEMP/trust-modules.txt")" = 3 ]
+      - name: trust bundle
+        working-directory: device
+        run: |
+          { read static; read systemos; read app; } < "$RUNNER_TEMP/trust-modules.txt"
+          python3 ../UniXNU/scripts/bundle-ipsw-trust.py "$RUNNER_TEMP/apple-trust.bundle" \
+            "$static" "$systemos" "$app"
       - name: package
         working-directory: device
         env:
           UNIXNU_UNIQUE_CHIP_ID: ${{ secrets.UNIXNU_UNIQUE_CHIP_ID }}
           GITHUB_TOKEN: ${{ github.token }}
-        run: scripts/package.sh --os "${{ inputs.os }}" --uefi ../uefi-vermeer
+        run: scripts/package.sh --os "${{ inputs.os }}" --uefi ../uefi-vermeer \
+          --trust-cache "$RUNNER_TEMP/apple-trust.bundle"
       - name: root tables
         working-directory: device
         run: python3 scripts/build-vermeer-root-tables.py --os "${{ inputs.os }}"
