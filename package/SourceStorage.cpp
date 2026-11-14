@@ -27,6 +27,7 @@
 
 #include <IOKit/IOService.h>
 #include <IOKit/IOPlatformExpert.h>
+#include <IOKit/IODeviceTreeSupport.h>
 #include <IOKit/storage/IOBlockStorageDevice.h>
 #include <libkern/OSKextLib.h>
 #include <mach/kmod.h>
