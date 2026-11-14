@@ -92,8 +92,9 @@ jobs:
         env:
           UNIXNU_UNIQUE_CHIP_ID: ${{ secrets.UNIXNU_UNIQUE_CHIP_ID }}
           GITHUB_TOKEN: ${{ github.token }}
-        run: scripts/package.sh --os "${{ inputs.os }}" --uefi ../uefi-vermeer \
-          --trust-cache "$RUNNER_TEMP/apple-trust.bundle"
+        run: |
+          scripts/package.sh --os "${{ inputs.os }}" --uefi ../uefi-vermeer \
+            --trust-cache "$RUNNER_TEMP/apple-trust.bundle"
       - name: root tables
         if: inputs.root_image
         working-directory: device
