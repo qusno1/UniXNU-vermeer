@@ -89,6 +89,11 @@ jobs:
           done
           [ ${#objects[@]} -gt 0 ] || { echo 'no root tables found'; exit 1; }
           python3 ../UniXNU/unixnu userdata --os "${{ inputs.os }}" --uefi ../uefi-vermeer "${objects[@]}"
+      - name: sparse root image
+        working-directory: device
+        run: |
+          image=$(ls ../UniXNU/out/vermeer/*/*/userdata/userdata-root.img)
+          python3 scripts/make-sparse-root-image.py "$image" "${image%.img}-sparse.img"
       - name: root image artifact
         uses: actions/upload-artifact@v4
         with:
@@ -96,7 +101,7 @@ jobs:
           retention-days: 7
           if-no-files-found: error
           path: |
-            UniXNU/out/vermeer/*/*/userdata/userdata-root.img
+            UniXNU/out/vermeer/*/*/userdata/userdata-root-sparse.img
             UniXNU/out/vermeer/*/*/userdata/userdata-root.json
       - name: failure logs
         if: failure()
