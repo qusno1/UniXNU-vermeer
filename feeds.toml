@@ -20,5 +20,5 @@ commit = "a9f45dc60c035084b95463781538380f4c3606c9"
 name = "ShengUfs"
 kind = "driver"
 git = "https://github.com/qusno1/ShengUfs.git"
-commit = "72d022f7a4952c73b683222c0d40e86cdf8afd04"
+commit = "3475e76e3342ad6a5197347cebfb1f80e821534c"
 

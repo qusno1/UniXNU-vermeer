@@ -79,6 +79,14 @@ volatile uint32_t native_ufs_status = 0;
 // Root start: 1 entered, 2 host up, 3 layout found; the last soft-failure reason (a static string), for the boot page.
 volatile uint32_t native_ufs_root_step = 0;
 const char *volatile native_ufs_root_failure = nullptr;
+// A formatted snapshot of gRootDiagnostic for the boot page. SourceStorage's panic calls this
+// so a failed start names the exact stage, window and policy verdict, not just the root step:
+// the first window-preparation failure on this board reached the screen as "root step 3: root
+// window preparation failed" with the deciding detail - which policy check refused - lost.
+int native_ufs_root_diagnostics (char *buffer, size_t capacity, const char *reason)
+{
+  return formatUfsRootDiagnostics (buffer, capacity, gRootDiagnostic, reason);
+}
 volatile uint32_t native_ufs_cap = 0;
 volatile uint32_t native_ufs_version = 0;
 volatile uint32_t native_ufs_hcs = 0;

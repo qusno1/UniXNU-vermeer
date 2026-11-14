@@ -22,20 +22,30 @@ CONFIG_XNU_KERNEL_CHAINED_FIXUPS=y
 # are not in [components] and their archives are not in [kernel] archives, so the kernel must
 # not reference them. Re-enable the flag, both components and their archive entries together.
 # CONFIG_XNU_NATIVE_ADRENO is not set
-# Storage is on. CONFIG_XNU_NATIVE_UFS links the UFS driver from [kernel] archives.
+# Storage is on. The UFS driver is not a standalone kext on arm64e: build-arm-driver.py routes
+# ShengUfs to build-sheng-source-storage.py, which builds the deferred IOBlockStorageDevice
+# adapter plus the SourceStorage runtime that loads the original IOStorageFamily and APFS and
+# authenticates the signed root policies. That makes the policy bundle a build input, so
+# scripts/policies/ipados-27.0.1-24A446 carries the OS and SystemOS headers and their 395-byte
+# owner anchor. Those are the same files sheng uses for this profile, and they are the right
+# ones because the profile pins the same image: os_image_sha256 8a12cdad... and
+# systemos_image_sha256 d5b4873d... with the matching volume UUIDs.
 #
-# On arm64e the driver is not a standalone kext: build-arm-driver.py routes ShengUfs to
-# build-sheng-source-storage.py, which builds the deferred IOBlockStorageDevice adapter plus the
-# SourceStorage runtime that loads the original IOStorageFamily and APFS and authenticates the
-# signed root policies. That makes the policy bundle a build input, so scripts/policies/
-# ipados-27.0.1-24A446 carries the OS and SystemOS headers and their 395-byte owner anchor.
-# Those are the same files sheng uses for this profile, and they are the right ones because the
-# profile pins the same image: os_image_sha256 8a12cdad... and systemos_image_sha256 d5b4873d...
-# with the matching volume UUIDs.
+# CONFIG_XNU_NATIVE_UFS must stay OFF here, unlike sheng's iPadOS 17 base config. It does two
+# things at once: it force-loads build/sheng-ufs/libShengUfs.a (line 641 of
+# build-xnu-4k-baseline.sh) and it defines XNU_NATIVE_UFS for the personality table
+# (native-aes-personality.patch), which publishes NativeUfs personalities against
+# IOPlatformDevice and IOPlatformExpertDevice. In the source-storage design the class registers
+# late - SourceStorage's preModLoad runs the deferred constructors after IOStorageFamily loads,
+# long after IOKit has matched personalities - so every matching provider node logs
+# 'Couldn't alloc class "NativeUfs"' (36 of them on the first boot) and any provider that
+# matches after registration could start a second, unmanaged instance. sheng's
+# sheng_ipados27_defconfig for this same profile does not set it either. The archive still has
+# to reach the link, which CONFIG_XNU_EXTRA_LD_ARCHIVES below does the way sheng does it.
 #
 # CONFIG_XNU_SOURCE_STORAGE_TABLES="userdata" keeps only the 544-byte signed header in the boot
 # image and leaves the block tables in the userdata image, which is what lets the payload stay
 # inside the fastboot size limit.
-CONFIG_XNU_NATIVE_UFS=y
 CONFIG_XNU_SOURCE_STORAGE=y
 CONFIG_XNU_SOURCE_STORAGE_TABLES="userdata"
+CONFIG_XNU_EXTRA_LD_ARCHIVES="-Wl,-force_load,{tree}/build/sheng-source-storage/libShengSourceStorage.a"

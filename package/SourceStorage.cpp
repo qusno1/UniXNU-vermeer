@@ -48,6 +48,9 @@ extern "C" bool native_source_root_policies_load(void);
 // in the panic text so a failed boot names the step instead of a bare message.
 extern "C" volatile uint32_t native_ufs_root_step;
 extern "C" const char *volatile native_ufs_root_failure;
+// Formatted UfsRootDiagnostics snapshot from the driver: the stage, window and
+// policy verdict that the step number alone does not carry.
+extern "C" int native_ufs_root_diagnostics(char *buffer, size_t capacity, const char *reason);
 
 // NativeUfs polls the board diagnostic during window reads. The minimal runtime
 // does not carry one, and the archive's weak reference needs a definition.
@@ -156,8 +159,10 @@ extern "C" void native_source_storage_start(void)
 	const char *step = !storageDriver->init() ? "init" : !storageDriver->attach(provider) ? "attach"
 	    : !storageDriver->start(provider) ? "start" : nullptr;
 	if (step) {
-		panic("SourceStorage: UFS %s failed (root step %u: %s)", step, native_ufs_root_step,
+		char detail[2048];
+		native_ufs_root_diagnostics(detail, sizeof(detail),
 		    native_ufs_root_failure ? native_ufs_root_failure : "no reason recorded");
+		panic("SourceStorage: UFS %s failed (root step %u)\n%s", step, native_ufs_root_step, detail);
 	}
 
 	printf("SourceStorage: UFS started through public IOStorageFamily interface\n");
