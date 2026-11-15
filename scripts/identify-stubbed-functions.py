@@ -62,11 +62,8 @@ def main():
     print(f'kernelcache: {cache} ({len(starts)} original functions, base {kernel.base:#x})')
 
     def read(va, length):
-        for base, end in mapped:
-            if base <= va and va + length <= end:
-                at = image.offset(va, length)
-                return data[at:at + length]
-        raise ValueError(f'{va:#x}: outside the kernel entry')
+        at = image.offset(va, length)
+        return data[at:at + length]
 
     def name_of(target):
         entry = functions.get(f'{target:#x}')
