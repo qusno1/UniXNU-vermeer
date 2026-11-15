@@ -98,9 +98,11 @@ jobs:
       - name: bind stubbed imports
         working-directory: device
         run: |
-          python3 scripts/bind-stubbed-imports.py --os "${{ inputs.os }}"
+          record=$(ls ../UniXNU/out/vermeer/*/*/kernel/kernel.json)
+          native=$(ls ../UniXNU/out/vermeer/*/*/tree/build/xnu/ios-obj/DEVELOPMENT_ARM64_BCM2837/mach.development.bcm2837.unstripped.noctf)
+          python3 scripts/bind-stubbed-imports.py "$record" "$native"
           python3 ../UniXNU/unixnu kernel --os "${{ inputs.os }}" --uefi ../uefi-vermeer
-          python3 ../UniXNU/unixnu payload --os "${{ inputs.os }}" --uefi ../uefi-vermeer             --trust-cache "$RUNNER_TEMP/apple-trust.bundle"
+          python3 ../UniXNU/unixnu payload --os "${{ inputs.os }}" --uefi ../uefi-vermeer --trust-cache "$RUNNER_TEMP/apple-trust.bundle"
       - name: root tables
         if: inputs.root_image
         working-directory: device
