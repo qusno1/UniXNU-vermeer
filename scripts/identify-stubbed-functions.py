@@ -80,6 +80,7 @@ def main():
             targets.append((owner, int(address, 16) - slide, address))
     targets.sort()
 
+    report = []
     fixups = image.fixups()
     report.append(f'original kernelcache chained fixups: {len(fixups)}')
 
