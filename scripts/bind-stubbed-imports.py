@@ -41,7 +41,7 @@ def main():
     from unixnu import ipsw as ipsw_module
     from unixnu.cli import parser as cli_parser
     from unixnu.config import Context
-    from kc_image import Image
+    from kc_image import Image, scan
 
     cli = cli_parser().parse_args(['build', 'kernel', '--os', profile, '-D', str(ROOT)])
     ctx = Context(cli)
@@ -118,6 +118,30 @@ def main():
     for line in sorted(unresolved):
         print(f'unresolved: {line}')
     print(f'pairs added: {len(added)}; unresolved: {len(unresolved)}; map: {map_path}')
+
+    # Disassembly evidence for each imported function: the bytes, extent and
+    # call/data references of the ORIGINAL kernel function the PLT names, so
+    # the reviewed fixture can carry recorded evidence per entry.
+    starts = sorted(kernel.function_starts())
+    print('== imported function evidence (original kernelcache bytes):')
+    for imported, (owner, name, native) in sorted(added.items()):
+        index = bisect.bisect_left(starts, imported)
+        if index >= len(starts) or starts[index] != imported:
+            print(f'== {imported:#x}: not a known original function start')
+            continue
+        end = starts[index + 1] if index + 1 < len(starts) else imported + 0x200
+        size = end - imported
+        code = read(imported, size)
+        calls, refs, _ = scan(code, imported)
+        callee_names = []
+        for site, callee, is_bl in calls:
+            callee_names.append(f'{callee:#x} ' + (name_of(callee) or '(unpaired)'))
+        print(f'== {imported:#x} imported by {owner}: {size} bytes, {len(calls)} calls, {len(refs)} refs')
+        for line in callee_names:
+            print(f'   call -> {line}')
+        for site, ref, kind, *_ in refs:
+            refname = name_of(ref)
+            print(f'   ref  {site:#x} -> {ref:#x} {kind} ' + (refname if refname else '(unpaired)'))
 
 
 if __name__ == '__main__':
