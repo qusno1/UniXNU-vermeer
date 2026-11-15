@@ -19,6 +19,7 @@ fixture this board needs before launchd can exec.
 import argparse
 import bisect
 import json
+import struct
 import sys
 from pathlib import Path
 
@@ -79,25 +80,52 @@ def main():
             targets.append((owner, int(address, 16) - slide, address))
     targets.sort()
 
+    fixups = image.fixups()
+    report.append(f'original kernelcache chained fixups: {len(fixups)}')
+
+    def plt_slot(target):
+        """Decode a 16-byte PLT entry: adrp x16 / ldr x17, [x16, #off] / br x17 / nop."""
+        code = read(target, 16)
+        if code is None or len(code) != 16:
+            return None
+        a, b, c, d = struct.unpack_from('<II', code, 0)
+        if (a >> 24) & 0x9F != 0x90 or (a & 31) != 16:
+            return None
+        immhi = (a >> 5) & 0x7FFFF
+        immlo = (a >> 29) & 3
+        t = (immhi << 2 | immlo)
+        t = (t << 12) - (1 << 33 if t & 0x100000 else 0)
+        page = (target & ~0xFFF) + t
+        if (b >> 22) == 0x3E5 and ((b >> 5) & 31) == 16 and (b & 31) == 17:
+            return page + ((b >> 10) & 0xFFF) * 8
+        if (b >> 22) == 0x244 and ((b >> 5) & 31) == 16 and (b & 31) == 16:
+            return page + ((b >> 10) & 0xFFF)
+        return None
+
+    def named(va):
+        entry = functions.get(f'{va:#x}')
+        if entry is None:
+            return None
+        return f"{entry['name']} [{entry['how']}]"
+
     report = []
+    identified = {}
     for owner, target, slid in targets:
-        index = bisect.bisect_left(starts, target)
-        if index >= len(starts) or starts[index] != target:
-            report.append(f'{owner} {target:#x}: not a known function start')
+        slot = plt_slot(target)
+        if slot is None:
+            report.append(f'{owner} {slid:#x}: original {target:#x} - not a PLT entry')
             continue
-        end = starts[index + 1] if index + 1 < len(starts) else target + 0x400
-        size = end - target
-        code = read(target, size)
-        calls, refs, _ = scan(code, target)
-        report.append(f'== {owner} {target:#x}: {size} bytes, {len(calls)} calls, {len(refs)} data refs')
-        for site, callee, is_bl in calls:
-            name = name_of(callee)
-            mark = 'call' if is_bl else 'tail '
-            report.append(f'   {mark} {site:#x} -> {callee:#x} ' + (name if name else '(unpaired)'))
-        for site, target_ref, kind, *_ in refs:
-            name = name_of(target_ref)
-            if name:
-                report.append(f'   ref  {site:#x} -> {target_ref:#x} {kind} ' + name)
+        fixup = fixups.get(slot)
+        if fixup is None:
+            report.append(f'{owner} {slid:#x}: PLT -> GOT {slot:#x} - no chained fixup at the slot')
+            continue
+        function = fixup[0]
+        name = named(function)
+        report.append(f'{owner} {slid:#x}: PLT {target:#x} -> GOT {slot:#x} -> {function:#x} ' + (name if name else '(UNNAMED - outside the paired kernel range)'))
+        identified.setdefault(function, []).append((owner, slid))
+    for function, users in sorted(identified.items()):
+        name = named(function)
+        report.append(f'== {function:#x} ' + (name if name else '(UNNAMED)') + f' imported by: ' + ', '.join(k for k, _ in users))
     text = '\n'.join(report)
     out = work / 'vermeer-root'
     out.mkdir(parents=True, exist_ok=True)
