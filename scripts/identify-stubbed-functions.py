@@ -62,8 +62,22 @@ def main():
     print(f'kernelcache: {cache} ({len(starts)} original functions, base {kernel.base:#x})')
 
     def read(va, length):
-        at = image.offset(va, length)
-        return data[at:at + length]
+        out = bytearray()
+        while length > 0:
+            piece = None
+            for s in image.segments:
+                if s['va'] <= va < s['va'] + s['filesize']:
+                    n = min(length, s['va'] + s['filesize'] - va)
+                    at = s['fileoff'] + va - s['va']
+                    out += data[at:at + n]
+                    va += n
+                    length -= n
+                    piece = True
+                    break
+            if piece is None:
+                out += bytes(length)
+                break
+        return bytes(out)
 
     def name_of(target):
         entry = functions.get(f'{target:#x}')
