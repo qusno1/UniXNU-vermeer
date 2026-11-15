@@ -29,6 +29,7 @@ ROOT = Path(__file__).resolve().parents[1]
 def main():
     parser = argparse.ArgumentParser(description=__doc__)
     parser.add_argument('--os', help='OS profile (default: the board os_profile)')
+    parser.add_argument('--ipsw', help='local IPSW file (default: the profile url)')
     args = parser.parse_args()
 
     import tomllib
@@ -43,7 +44,10 @@ def main():
     from unixnu.config import Context
     from kc_image import Image, scan
 
-    cli = cli_parser().parse_args(['build', 'kernel', '--os', profile, '-D', str(ROOT)])
+    argv = ['build', 'kernel', '--os', profile, '-D', str(ROOT)]
+    if args.ipsw:
+        argv += ['--ipsw', args.ipsw]
+    cli = cli_parser().parse_args(argv)
     ctx = Context(cli)
     work = ctx.work
     record = json.loads((work / 'kernel' / 'kernel.json').read_text())
@@ -61,6 +65,38 @@ def main():
     fixups = image.fixups()
     print(f'kernelcache: {cache} ({len(functions)} paired original functions, '
           f'{len(fixups)} chained fixups, base {image.base:#x})')
+
+    def read(va, length):
+        out = bytearray()
+        while length > 0:
+            for seg in kernel.segments:
+                if seg['va'] <= va < seg['va'] + seg['filesize']:
+                    n = min(length, seg['va'] + seg['filesize'] - va)
+                    at = seg['fileoff'] + va - seg['va']
+                    out += data[at:at + n]
+                    va += n
+                    length -= n
+                    break
+            else:
+                out += bytes(length)
+                length = 0
+        return bytes(out)
+
+    def read(va, length):
+        out = bytearray()
+        while length > 0:
+            for seg in kernel.segments:
+                if seg['va'] <= va < seg['va'] + seg['filesize']:
+                    n = min(length, seg['va'] + seg['filesize'] - va)
+                    at = seg['fileoff'] + va - seg['va']
+                    out += data[at:at + n]
+                    va += n
+                    length -= n
+                    break
+            else:
+                out += bytes(length)
+                length = 0
+        return bytes(out)
 
     def plt_slot(target):
         """Decode a 16-byte PLT entry: adrp x16 / ldr x17, [x16, #off] / br x17 / nop."""
