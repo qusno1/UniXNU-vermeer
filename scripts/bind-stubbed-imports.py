@@ -38,7 +38,7 @@ def main():
 
     sys.path.insert(0, str(unixnu / 'scripts'))
     sys.path.insert(0, str(unixnu / 'kits' / 'XnuPrelink'))
-    from unixnu import ipsw_module
+    from unixnu import ipsw as ipsw_module
     from unixnu.cli import parser as cli_parser
     from unixnu.config import Context
     from kc_image import Image
