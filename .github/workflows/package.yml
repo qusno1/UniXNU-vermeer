@@ -95,9 +95,12 @@ jobs:
         run: |
           scripts/package.sh --os "${{ inputs.os }}" --uefi ../uefi-vermeer \
             --trust-cache "$RUNNER_TEMP/apple-trust.bundle"
-      - name: stub report
+      - name: bind stubbed imports
         working-directory: device
-        run: python3 scripts/identify-stubbed-functions.py --os "${{ inputs.os }}"
+        run: |
+          python3 scripts/bind-stubbed-imports.py --os "${{ inputs.os }}"
+          python3 ../UniXNU/unixnu kernel --os "${{ inputs.os }}" --uefi ../uefi-vermeer
+          python3 ../UniXNU/unixnu payload --os "${{ inputs.os }}" --uefi ../uefi-vermeer             --trust-cache "$RUNNER_TEMP/apple-trust.bundle"
       - name: root tables
         if: inputs.root_image
         working-directory: device
