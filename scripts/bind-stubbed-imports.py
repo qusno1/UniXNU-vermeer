@@ -14,8 +14,10 @@ reuses the patched map and binds the imports. Pure python: the symbol table is
 parsed here, no llvm-nm, no other host tool.
 """
 import argparse
+import hashlib
 import json
 import struct
+import sys
 from pathlib import Path
 
 ROOT = Path(__file__).resolve().parents[1]
